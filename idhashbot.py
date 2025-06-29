@@ -11,12 +11,12 @@ from time import time
 import json
 
 
-BOT_TOKEN = '8164547588:AAFPyMpcqCr2AK4IGpugQqSMVrcpp9o65OQ' 
+BOT_TOKEN = 'YOUR-BOT-Token' 
 bot = telebot.TeleBot(BOT_TOKEN)
 logger = getLogger(__name__)
 message_tracker = {}
 user_data = {}
-ADMIN_USER_IDS = [6728527154] 
+ADMIN_USER_IDS = [1234567] 
 USERS_FILE = "users.json"
 
 def save_user(user_id, username):
