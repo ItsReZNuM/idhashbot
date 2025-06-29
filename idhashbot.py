@@ -7,11 +7,11 @@ import os
 from datetime import datetime
 from pytz import timezone
 from logging import getLogger
-from time import time
+from time import time , sleep
 import json
 
 
-BOT_TOKEN = 'YOUR-BOT-Token' 
+BOT_TOKEN = 'YOUR-BOT-Token'
 bot = telebot.TeleBot(BOT_TOKEN)
 logger = getLogger(__name__)
 message_tracker = {}
@@ -20,6 +20,8 @@ ADMIN_USER_IDS = [1234567]
 USERS_FILE = "users.json"
 
 def save_user(user_id, username):
+    if user_id in ADMIN_USER_IDS:
+        return
     users = []
     if os.path.exists(USERS_FILE):
         try:
@@ -96,7 +98,7 @@ def send_broadcast(message):
         try:
             bot.send_message(user["id"], message.text)
             success_count += 1
-            time.sleep(0.5)
+            sleep(0.5)
         except Exception as e:
             logger.warning(f"Failed to send broadcast to user {user['id']}: {e}")
             continue
