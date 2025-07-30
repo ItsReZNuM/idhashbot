@@ -1,4 +1,5 @@
 pyTelegramBotAPI==4.14.0
 requests==2.31.0
 beautifulsoup4==4.12.2
-pytz==2023.3
+pytz==2024.1
+python-dotnev==1.0.1

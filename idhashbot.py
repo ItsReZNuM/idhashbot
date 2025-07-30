@@ -9,14 +9,16 @@ from pytz import timezone
 from logging import getLogger
 from time import time , sleep
 import json
+from dotenv import load_dotenv
 
+load_dotenv()
 
-BOT_TOKEN = 'YOUR-BOT-Token'
-bot = telebot.TeleBot(BOT_TOKEN)
+TOKEN = os.getenv('TOKEN')
+bot = telebot.TeleBot(TOKEN)
 logger = getLogger(__name__)
 message_tracker = {}
 user_data = {}
-ADMIN_USER_IDS = [1234567] 
+ADMIN_USER_IDS = os.getenv('ADMIN_USER_IDS')
 USERS_FILE = "users.json"
 
 def save_user(user_id, username):
