@@ -1,48 +1,65 @@
 # main.py
-import telebot
 import logging
+import telebot
 import config
 import database
-
-# وارد کردن توابع ثبت هندلرها
 from handlers.start_handler import register_start_handler
 from handlers.api_handler import register_api_handlers
 from handlers.admin_handler import register_admin_handlers
 from handlers.other_handlers import register_other_handlers
 
 # تنظیمات لاگ‌گیری
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-# ساخت نمونه ربات
+# ساخت نمونه ربات تلگرام
 bot = telebot.TeleBot(config.TOKEN)
 
-# دیکشنری برای نگهداری وضعیت کاربران (در حافظه)
+# دیکشنری نگهداری وضعیت و داده‌های موقت کاربران
 user_data = {}
 
+
+def setup_bot_commands():
+    """ثبت لیست دستورات پیش‌فرض در منوی تلگرام."""
+    commands = [
+        telebot.types.BotCommand("start", "🚀 Start / شروع / Запуск"),
+        telebot.types.BotCommand("lang", "🌐 Language / تغییر زبان / Язык"),
+        telebot.types.BotCommand("help", "ℹ️ Help / راهنما / Помощь"),
+        telebot.types.BotCommand("cancel", "❌ Cancel / لغو عملیات / Отмена"),
+        telebot.types.BotCommand("alive", "🤖 Check status / بررسی وضعیت"),
+    ]
+    try:
+        bot.set_my_commands(commands)
+    except Exception as e:
+        logger.warning(f"عدم موفقیت در تنظیم دستورات تلگرام: {e}")
+
+
 def main():
-    """تابع اصلی برای راه‌اندازی ربات."""
-    
-    # مقداردهی اولیه پایگاه داده
+    """تابع اصلی راه‌اندازی و اجرای ربات."""
+    if not config.TOKEN:
+        logger.error("خطا: توکن ربات (TOKEN) در فایل .env تنظیم نشده است!")
+        return
+
+    # مقداردهی اولیه پایگاه داده و مایگریشن
     database.init_db()
 
-    # ثبت دستورات ربات
-    commands = [
-        telebot.types.BotCommand("start", "شروع ربات"),
-        telebot.types.BotCommand("alive", "چک کردن وضعیت ربات"),
-    ]
-    bot.set_my_commands(commands)
-    
-    # ثبت تمام هندلرها از فایل‌های مختلف
+    # ثبت منوی دستورات
+    setup_bot_commands()
+
+    # ثبت هندلرها
     register_start_handler(bot, user_data)
     register_api_handlers(bot, user_data)
-    register_admin_handlers(bot)
-    register_other_handlers(bot)
+    register_admin_handlers(bot, user_data)
+    register_other_handlers(bot, user_data)
 
-    logger.info("ربات با موفقیت راه‌اندازی شد و در حال اجرا است...")
-    
-    # اجرای ربات
-    bot.polling(none_stop=True)
+    logger.info("ربات دریافت API با موفقیت راه‌اندازی شد و در حال گوش دادن به پیام‌هاست...")
+
+    # اجرای polling با مدیریت خطاهای اتصال
+    bot.infinity_polling(skip_pending=True)
+
 
 if __name__ == '__main__':
     main()

@@ -1,68 +1,98 @@
 # handlers/admin_handler.py
 import logging
 from time import sleep
+from telebot import TeleBot, types
 from config import ADMIN_USER_IDS
 import database
+from locales import tr
+from keyboards import get_main_keyboard, get_cancel_keyboard
 from utils import is_message_valid
 
 logger = logging.getLogger(__name__)
 
-def register_admin_handlers(bot):
-    def send_broadcast_message(message):
-        """پیام دریافت شده از ادمین را به همه کاربران ارسال می‌کند."""
+BROADCAST_TRIGGERS = {tr('btn_broadcast', l) for l in ['fa', 'en', 'ru']} | {'/broadcast'}
+CANCEL_TRIGGERS = {tr('btn_cancel', l) for l in ['fa', 'en', 'ru']} | {'/cancel', 'cancel', 'لغو'}
+
+
+def register_admin_handlers(bot: TeleBot, user_data: dict = None):
+
+    def send_broadcast_message(message: types.Message):
+        """پیام دریافت شده از ادمین را برای تمام کاربران ارسال می‌کند."""
         if not is_message_valid(message):
             return
-        
+
         admin_id = message.chat.id
-        
-        # دریافت لیست آیدی کاربران از پایگاه داده
+        admin_lang = database.get_user_language(admin_id) or 'fa'
+
+        if not message.text:
+            bot.send_message(admin_id, tr('admin_broadcast_prompt', admin_lang))
+            return
+
+        text = message.text.strip()
+        if text in CANCEL_TRIGGERS:
+            bot.send_message(admin_id, tr('cancelled', admin_lang), reply_markup=get_main_keyboard(admin_lang, is_admin=True))
+            return
+
         user_ids = database.get_all_user_ids()
         if not user_ids:
-            bot.send_message(admin_id, "❌ کاربری در پایگاه داده یافت نشد!")
+            bot.send_message(admin_id, tr('no_users_found', admin_lang), reply_markup=get_main_keyboard(admin_lang, is_admin=True))
             return
-            
-        success_count = 0
+
         total_users = len(user_ids)
-        
-        # ارسال پیام اولیه به ادمین
-        progress_message = bot.send_message(admin_id, f"⏳ در حال ارسال پیام به {total_users} کاربر...")
-        
-        for i, user_id in enumerate(user_ids):
+        success_count = 0
+
+        progress_msg = bot.send_message(
+            admin_id,
+            tr('admin_broadcast_sending', admin_lang, total=total_users)
+        )
+
+        for i, uid in enumerate(user_ids):
             try:
-                bot.send_message(user_id, message.text)
+                bot.send_message(uid, text)
                 success_count += 1
-                sleep(0.5) # وقفه کوتاه برای جلوگیری از بلاک شدن
-                
-                # ویرایش پیام پیشرفت در بازه‌های مشخص
-                if (i + 1) % 10 == 0 or (i + 1) == total_users:
+                sleep(0.1)  # وقفه کوتاه جهت جلوگیری از محدودیت تلگرام
+            except Exception as e:
+                logger.warning(f"ارسال پیام به کاربر {uid} ناموفق بود: {e}")
+                continue
+
+            if (i + 1) % 10 == 0 or (i + 1) == total_users:
+                try:
                     bot.edit_message_text(
                         chat_id=admin_id,
-                        message_id=progress_message.message_id,
-                        text=f"⏳ در حال ارسال... ({i + 1}/{total_users})"
+                        message_id=progress_msg.message_id,
+                        text=tr('admin_broadcast_progress', admin_lang, current=i + 1, total=total_users)
                     )
-            except Exception as e:
-                logger.warning(f"ارسال پیام به کاربر {user_id} ناموفق بود: {e}")
-                continue
-                
-        final_message = f"پیام به {success_count} کاربر از مجموع {total_users} کاربر با موفقیت ارسال شد 📢"
-        bot.edit_message_text(
-            chat_id=admin_id,
-            message_id=progress_message.message_id,
-            text=final_message
-        )
-        logger.info(f"پیام همگانی توسط ادمین {admin_id} به {success_count} کاربر ارسال شد.")
+                except Exception:
+                    pass
 
+        final_text = tr('admin_broadcast_done', admin_lang, success=success_count, total=total_users)
+        try:
+            bot.edit_message_text(
+                chat_id=admin_id,
+                message_id=progress_msg.message_id,
+                text=final_text
+            )
+        except Exception:
+            bot.send_message(admin_id, final_text)
 
-    @bot.message_handler(func=lambda message: message.text == "پیام همگانی 📢")
-    def handle_broadcast(message):
+        bot.send_message(admin_id, "✅", reply_markup=get_main_keyboard(admin_lang, is_admin=True))
+        logger.info(f"پیام همگانی توسط ادمین {admin_id} با موفقیت به {success_count}/{total_users} ارسال شد.")
+
+    @bot.message_handler(func=lambda message: message.text and message.text.strip() in BROADCAST_TRIGGERS)
+    def handle_broadcast_command(message: types.Message):
         if not is_message_valid(message):
             return
-            
-        user_id = message.chat.id
+
+        user_id = message.from_user.id
+        admin_lang = database.get_user_language(user_id) or 'fa'
+
         if user_id not in ADMIN_USER_IDS:
-            bot.send_message(user_id, "این قابلیت فقط برای ادمین‌ها در دسترس است!")
+            bot.send_message(message.chat.id, tr('admin_only', admin_lang))
             return
-            
-        logger.info(f"ادمین {user_id} فرآیند پیام همگانی را آغاز کرد.")
-        bot.send_message(user_id, "هر پیامی که می‌خواهی بنویس تا برای همه کاربران ارسال شود 📢")
+
+        bot.send_message(
+            message.chat.id,
+            tr('admin_broadcast_prompt', admin_lang),
+            reply_markup=get_cancel_keyboard(admin_lang)
+        )
         bot.register_next_step_handler(message, send_broadcast_message)
