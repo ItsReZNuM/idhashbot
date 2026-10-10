@@ -5,8 +5,9 @@ from config import DATABASE_NAME, ADMIN_USER_IDS
 
 logger = logging.getLogger(__name__)
 
+
 def init_db(db_name: str = DATABASE_NAME):
-    """جدول کاربران را مقداردهی اولیه کرده و ستون زبان را در صورت نیاز اضافه می‌کند."""
+    """Initialize database and migrate language column if missing."""
     try:
         with sqlite3.connect(db_name) as conn:
             cursor = conn.cursor()
@@ -18,25 +19,26 @@ def init_db(db_name: str = DATABASE_NAME):
                     language TEXT DEFAULT 'fa'
                 )
             """)
-            
-            # بررسی وجود ستون language برای دیتابیس‌های از قبل ساخته شده
+
+            # Ensure language column exists for existing legacy databases
             cursor.execute("PRAGMA table_info(users)")
             columns = [col[1] for col in cursor.fetchall()]
             if 'language' not in columns:
                 cursor.execute("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'fa'")
-                logger.info("ستون language به جدول users افزوده شد.")
-                
+                logger.info("Migrated database: added 'language' column to users table.")
+
             conn.commit()
-            logger.info("پایگاه داده با موفقیت مقداردهی اولیه شد.")
+            logger.info("Database initialized successfully.")
     except sqlite3.Error as e:
-        logger.error(f"خطا در ایجاد پایگاه داده: {e}")
+        logger.error(f"Error initializing database: {e}")
+
 
 def add_user(user_id: int, username: str, first_name: str, language: str = 'fa', db_name: str = DATABASE_NAME):
-    """یک کاربر جدید را به پایگاه داده اضافه یا مشخصات آن را به‌روزرسانی می‌کند."""
+    """Add a new user or update existing user info in the database."""
     if not user_id:
         return
-        
-    # اگر کاربر ادمین باشد، او را در دیتابیس ذخیره نکن
+
+    # Do not save admin IDs to the regular broadcast users table
     if user_id in ADMIN_USER_IDS:
         return
 
@@ -52,10 +54,11 @@ def add_user(user_id: int, username: str, first_name: str, language: str = 'fa',
             """, (user_id, username if username else "", first_name if first_name else "", language))
             conn.commit()
     except sqlite3.Error as e:
-        logger.error(f"خطا در افزودن کاربر {user_id}: {e}")
+        logger.error(f"Error adding/updating user {user_id}: {e}")
+
 
 def get_user_language(user_id: int, db_name: str = DATABASE_NAME) -> str | None:
-    """زبان انتخاب شده کاربر را برمی‌گرداند."""
+    """Retrieve saved language preference for a user."""
     try:
         with sqlite3.connect(db_name) as conn:
             cursor = conn.cursor()
@@ -65,21 +68,23 @@ def get_user_language(user_id: int, db_name: str = DATABASE_NAME) -> str | None:
                 return row[0]
             return None
     except sqlite3.Error as e:
-        logger.error(f"خطا در خواندن زبان کاربر {user_id}: {e}")
+        logger.error(f"Error getting language for user {user_id}: {e}")
         return None
 
+
 def set_user_language(user_id: int, language: str, db_name: str = DATABASE_NAME):
-    """زبان کاربر را در پایگاه داده به‌روزرسانی می‌کند."""
+    """Update user language preference."""
     try:
         with sqlite3.connect(db_name) as conn:
             cursor = conn.cursor()
             cursor.execute("UPDATE users SET language = ? WHERE user_id = ?", (language, user_id))
             conn.commit()
     except sqlite3.Error as e:
-        logger.error(f"خطا در تغییر زبان کاربر {user_id}: {e}")
+        logger.error(f"Error updating language for user {user_id}: {e}")
+
 
 def get_all_user_ids(db_name: str = DATABASE_NAME) -> list[int]:
-    """لیستی از تمام آیدی‌های کاربران را برای ارسال پیام همگانی برمی‌گرداند."""
+    """Retrieve all user IDs for broadcast messages."""
     try:
         with sqlite3.connect(db_name) as conn:
             cursor = conn.cursor()
@@ -87,5 +92,5 @@ def get_all_user_ids(db_name: str = DATABASE_NAME) -> list[int]:
             user_ids = [item[0] for item in cursor.fetchall()]
             return user_ids
     except sqlite3.Error as e:
-        logger.error(f"خطا در خواندن کاربران از پایگاه داده: {e}")
+        logger.error(f"Error fetching user IDs from database: {e}")
         return []

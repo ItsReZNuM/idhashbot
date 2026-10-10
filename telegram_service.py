@@ -1,7 +1,7 @@
 # telegram_service.py
 """
-ماژول اختصاصی ارتباط با سرورهای رسمی my.telegram.org
-الهام‌گرفته و کاملاً هماهنگ با اسکریپت ApiIDHash
+Service module for interacting with my.telegram.org.
+Ports robust multi-layered scraping and app creation logic from ApiIDHash.
 """
 
 import re
@@ -24,7 +24,7 @@ BROWSER_HEADERS = {
 
 
 def normalize_phone_number(phone_input: str) -> str | None:
-    """شماره تلفن را استانداردسازی کرده و صحت فرمت بین‌المللی آن را بررسی می‌کند."""
+    """Normalize phone number and validate international format."""
     if not phone_input:
         return None
 
@@ -43,21 +43,21 @@ def normalize_phone_number(phone_input: str) -> str | None:
 
 
 def extract_login_code(code_input: str) -> str:
-    """کد ورود ارسالی تلگرام را از پیام خام یا پیام فوروارد شده استخراج می‌کند."""
+    """Extract Telegram verification code from raw string or forwarded system message."""
     if not code_input:
         return ""
 
-    # قالب انگلیسی پیام تلگرام
+    # English Telegram system message pattern
     code_match = re.search(r'This is your login code:\s*([a-zA-Z0-9]+)', code_input, re.IGNORECASE)
     if code_match:
         return code_match.group(1).strip()
 
-    # قالب فارسی پیام تلگرام
+    # Persian Telegram system message pattern
     fa_match = re.search(r'کد ورود شما:\s*([a-zA-Z0-9]+)', code_input)
     if fa_match:
         return fa_match.group(1).strip()
 
-    # قالب روسی پیام تلگرام
+    # Russian Telegram system message pattern
     ru_match = re.search(r'Ваш код для входа:\s*([a-zA-Z0-9]+)', code_input, re.IGNORECASE)
     if ru_match:
         return ru_match.group(1).strip()
@@ -67,15 +67,17 @@ def extract_login_code(code_input: str) -> str:
 
 def extract_credentials(html: str, soup: BeautifulSoup) -> tuple[str | None, str | None, str | None, str | None]:
     """
-    استخراج چندلایه و مقاوم API ID، API Hash، کلید عمومی و تنظیمات سرور.
-    (دقیقاً منطبق بر لایه‌های استخراج ApiIDHash)
+    Robust multi-layered extraction of api_id, api_hash, public_key, and prod_config.
+    Layer 1: Flexible DOM search across label tags and form containers.
+    Layer 2: Search elements with uneditable/selectable classes or attributes.
+    Layer 3: Direct regex fallbacks on the raw HTML.
     """
     api_id = None
     api_hash = None
     public_key = None
     prod_config = None
 
-    # لایه ۱: جستجوی منعطف تگ‌های label، span، strong و غیره
+    # Layer 1: Flexible DOM search across label tags and parent containers
     labels = soup.find_all(['label', 'span', 'strong', 'td', 'th'])
     for el in labels:
         txt = el.get_text(strip=True).lower()
@@ -107,7 +109,7 @@ def extract_credentials(html: str, soup: BeautifulSoup) -> tuple[str | None, str
             if val_el:
                 prod_config = val_el.get_text(strip=True)
 
-    # لایه ۲: عناصر دارای استایل‌های uneditable یا selectable
+    # Layer 2: Elements with uneditable or selectable classes/attributes
     if not (api_id and api_hash):
         selectable = soup.find_all(lambda tag: (
             tag.name in ['span', 'input'] and (
@@ -123,7 +125,7 @@ def extract_credentials(html: str, soup: BeautifulSoup) -> tuple[str | None, str
             elif not api_hash and re.fullmatch(r'[0-9a-fA-F]{32}', val):
                 api_hash = val
 
-    # لایه ۳: الگوهای منظم (Regex Fallback) مستقیم روی محتوای متنی HTML
+    # Layer 3: Direct regex fallbacks on raw HTML content
     if not api_id:
         m_id = re.search(r'api_id.*?(\b\d{5,12}\b)', html, re.IGNORECASE | re.DOTALL)
         if m_id:
@@ -152,7 +154,7 @@ def extract_credentials(html: str, soup: BeautifulSoup) -> tuple[str | None, str
 
 
 def create_telegram_app(session: requests.Session, soup: BeautifulSoup) -> tuple[bool, str]:
-    """در صورتی که حسابی فاقد اپلیکیشن باشد، به صورت خودکار یک اپلیکیشن ثبت می‌کند."""
+    """Automatically create a Telegram application if the account has none."""
     hash_input = soup.find('input', {'name': 'hash'})
     if not hash_input or not hash_input.get('value'):
         return False, "csrf_hash_missing"
@@ -189,14 +191,14 @@ def create_telegram_app(session: requests.Session, soup: BeautifulSoup) -> tuple
         else:
             return False, f"HTTP {resp.status_code}"
     except Exception as e:
-        logger.error(f"خطا در ساخت خودکار اپلیکیشن تلگرام: {e}")
+        logger.error(f"Error creating Telegram app: {e}")
         return False, str(e)
 
 
 def send_telegram_code(session: requests.Session, phone_number: str) -> tuple[bool, str, str | None]:
     """
-    درخواست ارسال کد تأیید ورود از سرور my.telegram.org
-    خروجی: (موفقیت، وضعیت/پیام خطا، random_hash)
+    Request confirmation code from my.telegram.org/auth/send_password.
+    Returns: (success: bool, status_or_error: str, random_hash: str | None)
     """
     try:
         send_resp = session.post(
@@ -206,7 +208,7 @@ def send_telegram_code(session: requests.Session, phone_number: str) -> tuple[bo
             timeout=15
         )
     except requests.RequestException as e:
-        logger.error(f"خطای شبکه در send_password: {e}")
+        logger.error(f"Network error in send_password: {e}")
         return False, f"network_error:{e}", None
 
     if 'Sorry, too many tries. Please try again later.' in send_resp.text:
@@ -219,7 +221,7 @@ def send_telegram_code(session: requests.Session, phone_number: str) -> tuple[bo
             return False, 'parse_error', None
         return True, 'ok', random_hash
     except Exception as e:
-        logger.error(f"خطای پردازش پاسخ send_password: {e} | متن پاسخ: {send_resp.text[:100]}")
+        logger.error(f"Error parsing send_password response: {e} | Raw: {send_resp.text[:100]}")
         return False, 'parse_error', None
 
 
@@ -230,8 +232,8 @@ def login_and_get_credentials(
     code: str
 ) -> tuple[bool, dict | None, str]:
     """
-    احراز هویت کد در my.telegram.org و دریافت اعتبارنامه‌های API ID و API Hash
-    خروجی: (موفقیت، دیکشنری اطلاعات یا None، کد یا پیام خطا)
+    Authenticate confirmation code at my.telegram.org and extract API credentials.
+    Returns: (success: bool, data_dict_or_None: dict | None, error_code_or_msg: str)
     """
     login_data = {
         'phone': phone_number,
@@ -255,7 +257,7 @@ def login_and_get_credentials(
         err_msg = login_text if login_text else f"HTTP {login_resp.status_code}"
         return False, None, f"login_failed:{err_msg}"
 
-    # دسترسی به صفحه اپلیکیشن‌ها
+    # Access /apps page
     try:
         apps_page = session.get(
             'https://my.telegram.org/apps',
@@ -270,7 +272,7 @@ def login_and_get_credentials(
 
     soup = BeautifulSoup(apps_page.text, 'html.parser')
 
-    # در صورت نیاز به ساخت برنامه جدید
+    # If application needs to be created first
     if soup.find('form', action=re.compile(r'/apps/create')):
         created, reason = create_telegram_app(session, soup)
         if not created:
@@ -278,7 +280,7 @@ def login_and_get_credentials(
                 return False, None, 'app_creation_rejected'
             return False, None, f"app_creation_failed:{reason}"
 
-        # دریافت مجدد صفحه پس از ساخت اپلیکیشن
+        # Refetch /apps page after creating application
         try:
             apps_page = session.get(
                 'https://my.telegram.org/apps',

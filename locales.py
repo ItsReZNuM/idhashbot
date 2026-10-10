@@ -1,6 +1,5 @@
 # locales.py
 """
-ماژول محلی‌سازی و پشتیبانی از چند زبانگی (فارسی، انگلیسی، روسی)
 Localization module supporting Persian (fa), English (en), and Russian (ru).
 """
 
@@ -219,7 +218,7 @@ TEXTS = {
 SUPPORTED_LANGUAGES = ['fa', 'en', 'ru']
 
 def tr(key: str, lang: str = 'fa', **kwargs) -> str:
-    """ترجمه کلید با زبان مشخص، در صورت نبود به فارسی برمی‌گردد."""
+    """Retrieve translated text by key, falling back to Persian (fa) if not found."""
     if lang not in TEXTS:
         lang = 'fa'
     text = TEXTS[lang].get(key, TEXTS['fa'].get(key, key))

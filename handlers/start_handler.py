@@ -9,8 +9,9 @@ from utils import is_message_valid, check_rate_limit
 
 logger = logging.getLogger(__name__)
 
+
 def register_start_handler(bot: TeleBot, user_data: dict):
-    
+
     @bot.message_handler(commands=['start'])
     def send_welcome(message: types.Message):
         if not is_message_valid(message):
@@ -21,14 +22,14 @@ def register_start_handler(bot: TeleBot, user_data: dict):
         first_name = message.from_user.first_name or "User"
         chat_id = message.chat.id
 
-        # بررسی محدودیت نرخ ارسال پیام
+        # Check rate limit
         allowed, remaining = check_rate_limit(user_id)
         current_lang = database.get_user_language(user_id) or 'fa'
         if not allowed:
             bot.send_message(chat_id, tr('spam_warning', current_lang, remaining=remaining))
             return
 
-        # پاک‌سازی وضعیت قبلی و بستن سشن در صورت وجود
+        # Clean up existing state and close active session if present
         prev = user_data.get(chat_id)
         if prev and 'session' in prev and prev['session']:
             try:
@@ -37,12 +38,12 @@ def register_start_handler(bot: TeleBot, user_data: dict):
                 pass
         user_data.pop(chat_id, None)
 
-        # بررسی زبان ذخیره شده کاربر
+        # Retrieve saved user language preference
         saved_lang = database.get_user_language(user_id)
         is_first_time = saved_lang is None
 
         if is_first_time:
-            # تشخیص اولیه زبان از زبان تلگرام کاربر
+            # Detect language from user's Telegram client settings
             detected = 'fa'
             if message.from_user.language_code:
                 code = message.from_user.language_code[:2].lower()
@@ -66,7 +67,7 @@ def register_start_handler(bot: TeleBot, user_data: dict):
 
         is_admin = user_id in ADMIN_USER_IDS
 
-        # اگر کاربر بار اول است، کیبورد اینلاین انتخاب زبان را نیز ارسال می‌کنیم
+        # Show language inline picker if first time
         if is_first_time:
             bot.send_message(
                 chat_id,
@@ -97,7 +98,7 @@ def register_start_handler(bot: TeleBot, user_data: dict):
 
         bot.answer_callback_query(call.id, text=tr('language_selected', selected_lang))
 
-        # ویرایش پیام اینلاین قبلی
+        # Edit previous inline message
         try:
             bot.edit_message_text(
                 chat_id=chat_id,

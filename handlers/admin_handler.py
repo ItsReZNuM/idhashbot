@@ -17,7 +17,7 @@ CANCEL_TRIGGERS = {tr('btn_cancel', l) for l in ['fa', 'en', 'ru']} | {'/cancel'
 def register_admin_handlers(bot: TeleBot, user_data: dict = None):
 
     def send_broadcast_message(message: types.Message):
-        """پیام دریافت شده از ادمین را برای تمام کاربران ارسال می‌کند."""
+        """Broadcast message received from admin to all registered users."""
         if not is_message_valid(message):
             return
 
@@ -50,9 +50,9 @@ def register_admin_handlers(bot: TeleBot, user_data: dict = None):
             try:
                 bot.send_message(uid, text)
                 success_count += 1
-                sleep(0.1)  # وقفه کوتاه جهت جلوگیری از محدودیت تلگرام
+                sleep(0.1)  # Brief pause to respect Telegram flood limits
             except Exception as e:
-                logger.warning(f"ارسال پیام به کاربر {uid} ناموفق بود: {e}")
+                logger.warning(f"Failed to send broadcast message to user {uid}: {e}")
                 continue
 
             if (i + 1) % 10 == 0 or (i + 1) == total_users:
@@ -76,7 +76,7 @@ def register_admin_handlers(bot: TeleBot, user_data: dict = None):
             bot.send_message(admin_id, final_text)
 
         bot.send_message(admin_id, "✅", reply_markup=get_main_keyboard(admin_lang, is_admin=True))
-        logger.info(f"پیام همگانی توسط ادمین {admin_id} با موفقیت به {success_count}/{total_users} ارسال شد.")
+        logger.info(f"Broadcast completed by admin {admin_id}: sent to {success_count}/{total_users} users.")
 
     @bot.message_handler(func=lambda message: message.text and message.text.strip() in BROADCAST_TRIGGERS)
     def handle_broadcast_command(message: types.Message):

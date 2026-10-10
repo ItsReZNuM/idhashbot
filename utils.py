@@ -4,28 +4,28 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# زمان راه‌اندازی ربات بر حسب ثانیه (Unix Timestamp) برای نادیده گرفتن پیام‌های ارسال شده قبل از اجرای ربات
+# Bot startup timestamp in seconds (Unix Timestamp) to ignore stale messages received before start
 bot_start_time = time.time()
 
-# دیکشنری نگهداری نرخ ارسال پیام کاربران در حافظه
+# In-memory message tracker for rate limiting
 message_tracker = {}
 
 
 def is_message_valid(message) -> bool:
-    """بررسی می‌کند که آیا پیام ارسالی بعد از زمان روشن شدن ربات است یا خیر."""
+    """Check if message was sent after bot startup."""
     if not message or not hasattr(message, 'date') or not message.date:
         return True
     message_time = message.date
     if message_time < bot_start_time:
-        logger.warning(f"نادیده گرفتن پیام قدیمی از کاربر {getattr(message.chat, 'id', 'unknown')}")
+        logger.warning(f"Ignoring stale message from user {getattr(message.chat, 'id', 'unknown')}")
         return False
     return True
 
 
 def check_rate_limit(user_id: int) -> tuple[bool, int]:
     """
-    بررسی محدودیت نرخ ارسال پیام.
-    خروجی: (مجاز بودن پیام، ثانیه‌های باقیمانده از محدودیت)
+    Check rate limiting for user.
+    Returns: (is_allowed: bool, remaining_seconds: int)
     """
     current_time = time.time()
 

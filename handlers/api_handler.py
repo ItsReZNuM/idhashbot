@@ -18,7 +18,7 @@ from telegram_service import (
 
 logger = logging.getLogger(__name__)
 
-# لیست متن دکمه‌های کنترلی برای جلوگیری از تداخل با ورودی تلفن و کد
+# Control button labels across languages to prevent conflict with phone/code inputs
 CANCEL_TEXTS = {tr('btn_cancel', l) for l in ['fa', 'en', 'ru']} | {'/cancel', 'cancel', 'لغو'}
 LANG_TEXTS = {tr('btn_change_lang', l) for l in ['fa', 'en', 'ru']} | {'/lang', '/language'}
 BROADCAST_TEXTS = {tr('btn_broadcast', l) for l in ['fa', 'en', 'ru']} | {'/broadcast'}
@@ -39,13 +39,13 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
         lang = user_data.get(chat_id, {}).get('lang') or database.get_user_language(user_id) or 'fa'
         is_admin = user_id in ADMIN_USER_IDS
 
-        # بررسی محدودیت نرخ پیام
+        # Rate limit check
         allowed, remaining = check_rate_limit(user_id)
         if not allowed:
             bot.send_message(chat_id, tr('spam_warning', lang, remaining=remaining))
             return
 
-        # بررسی در صورت کلیک روی دکمه‌های سیستمی
+        # Check for system buttons clicked during phone prompt
         if message.text:
             text_val = message.text.strip()
             if text_val in CANCEL_TEXTS:
@@ -56,7 +56,7 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
                 bot.send_message(chat_id, tr('choose_language', lang), reply_markup=get_language_inline_keyboard())
                 return
             if text_val in BROADCAST_TEXTS and is_admin:
-                return  # توسط admin_handler مدیریت خواهد شد
+                return  # Managed by admin_handler
 
         raw_phone = ""
         if message.contact:
@@ -72,7 +72,7 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
             bot.send_message(chat_id, tr('invalid_phone', lang), parse_mode='Markdown')
             return
 
-        # اطلاع‌رسانی دریافت شماره و آغاز ارسال کد
+        # Acknowledge phone received and request login code
         bot.send_message(
             chat_id,
             tr('phone_received', lang, phone=phone_number),
@@ -97,7 +97,7 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
                 bot.send_message(chat_id, tr('login_failed', lang, error=status_or_err), reply_markup=get_main_keyboard(lang, is_admin))
             return
 
-        # ذخیره سشن باز برای مرحله بعد
+        # Preserve active HTTP session for subsequent verification step
         user_data[chat_id] = {
             'state': 'waiting_for_code',
             'phone': phone_number,
@@ -126,7 +126,7 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
         lang = info.get('lang') or database.get_user_language(user_id) or 'fa'
         is_admin = user_id in ADMIN_USER_IDS
 
-        # بررسی محدودیت نرخ پیام
+        # Rate limit check
         allowed, remaining = check_rate_limit(user_id)
         if not allowed:
             bot.send_message(chat_id, tr('spam_warning', lang, remaining=remaining))
@@ -134,7 +134,7 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
 
         raw_text = message.text.strip() if message.text else ""
 
-        # بررسی لغو
+        # Handle cancellation
         if raw_text in CANCEL_TEXTS:
             session = info.get('session')
             if session:
@@ -153,7 +153,7 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
 
         code = extract_login_code(raw_text)
 
-        # اعتبارسنجی اولیه فرمت کد تلگرام
+        # Validate code structure
         if not re.match(r'^[a-zA-Z0-9_\-]{4,25}$', code):
             bot.send_message(chat_id, tr('code_invalid_format', lang), reply_markup=get_cancel_keyboard(lang))
             return
@@ -182,7 +182,7 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
                     reply_markup=get_main_keyboard(lang, is_admin)
                 )
             else:
-                # مدیریت انواع خطاهای بازگشتی
+                # Handle error categories
                 if err_code == 'session_expired':
                     error_msg = tr('session_expired', lang)
                 elif err_code in ['app_creation_rejected', 'app_creation_failed']:

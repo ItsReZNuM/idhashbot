@@ -3,15 +3,15 @@ import os
 import re
 from dotenv import load_dotenv
 
-# بارگذاری متغیرها از فایل .env
+# Load environment variables from .env
 load_dotenv()
 
-# توکن ربات تلگرام
+# Telegram Bot Token
 TOKEN = os.getenv('TOKEN', '').strip()
 
-# لیست آیدی عددی ادمین‌ها (پشتیبانی از فرمت‌های کاما، لیست یا تک‌آیدی)
+# List of admin user IDs (supports comma-separated values, lists, or single ID)
 ADMIN_IDS_RAW = os.getenv('ADMIN_USER_IDS', '')
 ADMIN_USER_IDS = [int(admin_id) for admin_id in re.findall(r'\d+', ADMIN_IDS_RAW)]
 
-# نام فایل پایگاه داده
+# Database file name
 DATABASE_NAME = os.getenv('DATABASE_NAME', 'users.db')
