@@ -33,6 +33,9 @@ def test_tr_formatting():
         spam = tr('spam_warning', lang, remaining=15)
         assert "15" in spam
 
+        public_k = tr('public_key_text', lang, key="MIIBCgKCAQEA...")
+        assert "MIIBCgKCAQEA..." in public_k
+
 
 def test_tr_fallback():
     """Verify fallback to Persian if language or key is unknown."""

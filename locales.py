@@ -218,11 +218,11 @@ TEXTS = {
 SUPPORTED_LANGUAGES = ['fa', 'en', 'ru']
 
 
-def tr(key: str, lang: str = 'fa', **kwargs) -> str:
-    """Retrieve translated text by key, falling back to Persian (fa) if not found."""
+def tr(msg_key: str, /, lang: str = 'fa', **kwargs) -> str:
+    """Retrieve translated text by msg_key, falling back to Persian (fa) if not found."""
     if lang not in TEXTS:
         lang = 'fa'
-    text = TEXTS[lang].get(key, TEXTS['fa'].get(key, key))
+    text = TEXTS[lang].get(msg_key, TEXTS['fa'].get(msg_key, msg_key))
     if kwargs:
         try:
             return text.format(**kwargs)
