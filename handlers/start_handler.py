@@ -1,4 +1,5 @@
 # handlers/start_handler.py
+import re
 import logging
 from telebot import TeleBot, types
 from config import ADMIN_USER_IDS
@@ -38,50 +39,44 @@ def register_start_handler(bot: TeleBot, user_data: dict):
                 pass
         user_data.pop(chat_id, None)
 
-        # Retrieve saved user language preference
+        # Check if user has an existing saved language in the database
         saved_lang = database.get_user_language(user_id)
-        is_first_time = saved_lang is None
 
-        if is_first_time:
-            # Detect language from user's Telegram client settings
-            detected = 'fa'
-            if message.from_user.language_code:
-                code = message.from_user.language_code[:2].lower()
-                if code in ['fa', 'en', 'ru']:
-                    detected = code
-                elif code in ['ru', 'uk', 'be', 'kk']:
-                    detected = 'ru'
-                else:
-                    detected = 'en'
-
-            database.add_user(user_id, username, first_name, detected)
-            active_lang = detected
-        else:
-            active_lang = saved_lang
-            database.add_user(user_id, username, first_name, active_lang)
-
-        user_data[chat_id] = {
-            'state': 'waiting_for_phone',
-            'lang': active_lang
-        }
-
-        is_admin = user_id in ADMIN_USER_IDS
-
-        # Show language inline picker if first time
-        if is_first_time:
+        if not saved_lang:
+            # First time user: Ask for language FIRST before showing any welcome text
+            user_data[chat_id] = {
+                'state': 'waiting_for_lang'
+            }
             bot.send_message(
                 chat_id,
-                tr('choose_language', active_lang),
+                tr('choose_language', 'fa'),
                 reply_markup=get_language_inline_keyboard()
             )
+            return
 
-        welcome_text = tr('welcome', active_lang, name=first_name)
-        bot.send_message(
-            chat_id,
-            welcome_text,
-            reply_markup=get_main_keyboard(active_lang, is_admin),
-            parse_mode='Markdown'
-        )
+        # Returning user: proceed directly with their chosen language
+        user_data[chat_id] = {
+            'state': 'waiting_for_phone',
+            'lang': saved_lang
+        }
+
+        database.add_user(user_id, username, first_name, saved_lang)
+        is_admin = user_id in ADMIN_USER_IDS
+        welcome_text = tr('welcome', saved_lang, name=first_name)
+
+        try:
+            bot.send_message(
+                chat_id,
+                welcome_text,
+                reply_markup=get_main_keyboard(saved_lang, is_admin),
+                parse_mode='HTML'
+            )
+        except Exception:
+            bot.send_message(
+                chat_id,
+                re.sub(r'<[^>]+>', '', welcome_text),
+                reply_markup=get_main_keyboard(saved_lang, is_admin)
+            )
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith('setlang_'))
     def handle_language_callback(call: types.CallbackQuery):
@@ -89,7 +84,11 @@ def register_start_handler(bot: TeleBot, user_data: dict):
         user_id = call.from_user.id
         selected_lang = call.data.split('_')[1]
 
+        # Save selected language in DB
         database.set_user_language(user_id, selected_lang)
+        first_name = call.from_user.first_name or "User"
+        username = call.from_user.username
+        database.add_user(user_id, username, first_name, selected_lang)
 
         if chat_id not in user_data:
             user_data[chat_id] = {}
@@ -98,7 +97,7 @@ def register_start_handler(bot: TeleBot, user_data: dict):
 
         bot.answer_callback_query(call.id, text=tr('language_selected', selected_lang))
 
-        # Edit previous inline message
+        # Acknowledge language selection by updating the inline message
         try:
             bot.edit_message_text(
                 chat_id=chat_id,
@@ -108,13 +107,19 @@ def register_start_handler(bot: TeleBot, user_data: dict):
         except Exception:
             pass
 
-        first_name = call.from_user.first_name or "User"
         is_admin = user_id in ADMIN_USER_IDS
         welcome_text = tr('welcome', selected_lang, name=first_name)
 
-        bot.send_message(
-            chat_id,
-            welcome_text,
-            reply_markup=get_main_keyboard(selected_lang, is_admin),
-            parse_mode='Markdown'
-        )
+        try:
+            bot.send_message(
+                chat_id,
+                welcome_text,
+                reply_markup=get_main_keyboard(selected_lang, is_admin),
+                parse_mode='HTML'
+            )
+        except Exception:
+            bot.send_message(
+                chat_id,
+                re.sub(r'<[^>]+>', '', welcome_text),
+                reply_markup=get_main_keyboard(selected_lang, is_admin)
+            )

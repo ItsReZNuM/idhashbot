@@ -24,6 +24,16 @@ LANG_TEXTS = {tr('btn_change_lang', l) for l in ['fa', 'en', 'ru']} | {'/lang', 
 BROADCAST_TEXTS = {tr('btn_broadcast', l) for l in ['fa', 'en', 'ru']} | {'/broadcast'}
 
 
+def safe_send_message(bot: TeleBot, chat_id: int, text: str, reply_markup=None, parse_mode: str = 'HTML'):
+    """Send message with specified parse_mode, falling back to plain text if formatting fails."""
+    try:
+        return bot.send_message(chat_id, text, reply_markup=reply_markup, parse_mode=parse_mode)
+    except Exception as e:
+        logger.warning(f"Error sending message with parse_mode={parse_mode}: {e}. Retrying without formatting.")
+        plain_text = re.sub(r'<[^>]+>', '', text)
+        return bot.send_message(chat_id, plain_text, reply_markup=reply_markup)
+
+
 def register_api_handlers(bot: TeleBot, user_data: dict):
 
     @bot.message_handler(
@@ -42,7 +52,7 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
         # Rate limit check
         allowed, remaining = check_rate_limit(user_id)
         if not allowed:
-            bot.send_message(chat_id, tr('spam_warning', lang, remaining=remaining))
+            safe_send_message(bot, chat_id, tr('spam_warning', lang, remaining=remaining))
             return
 
         # Check for system buttons clicked during phone prompt
@@ -50,13 +60,13 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
             text_val = message.text.strip()
             if text_val in CANCEL_TEXTS:
                 user_data.pop(chat_id, None)
-                bot.send_message(chat_id, tr('cancelled', lang), reply_markup=get_main_keyboard(lang, is_admin))
+                safe_send_message(bot, chat_id, tr('cancelled', lang), reply_markup=get_main_keyboard(lang, is_admin))
                 return
             if text_val in LANG_TEXTS:
-                bot.send_message(chat_id, tr('choose_language', lang), reply_markup=get_language_inline_keyboard())
+                safe_send_message(bot, chat_id, tr('choose_language', lang), reply_markup=get_language_inline_keyboard())
                 return
             if text_val in BROADCAST_TEXTS and is_admin:
-                return  # Managed by admin_handler
+                return  # Handled by admin_handler
 
         raw_phone = ""
         if message.contact:
@@ -64,20 +74,16 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
         elif message.text:
             raw_phone = message.text.strip()
         else:
-            bot.send_message(chat_id, tr('invalid_phone', lang))
+            safe_send_message(bot, chat_id, tr('invalid_phone', lang))
             return
 
         phone_number = normalize_phone_number(raw_phone)
         if not phone_number:
-            bot.send_message(chat_id, tr('invalid_phone', lang), parse_mode='Markdown')
+            safe_send_message(bot, chat_id, tr('invalid_phone', lang))
             return
 
         # Acknowledge phone received and request login code
-        bot.send_message(
-            chat_id,
-            tr('phone_received', lang, phone=phone_number),
-            parse_mode='Markdown'
-        )
+        safe_send_message(bot, chat_id, tr('phone_received', lang, phone=phone_number))
 
         session = requests.Session()
         session.headers.update(BROWSER_HEADERS)
@@ -89,12 +95,12 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
             user_data.pop(chat_id, None)
 
             if status_or_err == 'rate_limited':
-                bot.send_message(chat_id, tr('telegram_rate_limited', lang), reply_markup=get_main_keyboard(lang, is_admin))
+                safe_send_message(bot, chat_id, tr('telegram_rate_limited', lang), reply_markup=get_main_keyboard(lang, is_admin))
             elif status_or_err.startswith('network_error:'):
                 err_detail = status_or_err.split(':', 1)[1]
-                bot.send_message(chat_id, tr('network_error', lang, error=err_detail), reply_markup=get_main_keyboard(lang, is_admin))
+                safe_send_message(bot, chat_id, tr('network_error', lang, error=err_detail), reply_markup=get_main_keyboard(lang, is_admin))
             else:
-                bot.send_message(chat_id, tr('login_failed', lang, error=status_or_err), reply_markup=get_main_keyboard(lang, is_admin))
+                safe_send_message(bot, chat_id, tr('login_failed', lang, error=status_or_err), reply_markup=get_main_keyboard(lang, is_admin))
             return
 
         # Preserve active HTTP session for subsequent verification step
@@ -106,11 +112,7 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
             'lang': lang
         }
 
-        bot.send_message(
-            chat_id,
-            tr('enter_code', lang),
-            reply_markup=get_cancel_keyboard(lang)
-        )
+        safe_send_message(bot, chat_id, tr('enter_code', lang), reply_markup=get_cancel_keyboard(lang))
 
     @bot.message_handler(
         content_types=['text'],
@@ -129,7 +131,7 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
         # Rate limit check
         allowed, remaining = check_rate_limit(user_id)
         if not allowed:
-            bot.send_message(chat_id, tr('spam_warning', lang, remaining=remaining))
+            safe_send_message(bot, chat_id, tr('spam_warning', lang, remaining=remaining))
             return
 
         raw_text = message.text.strip() if message.text else ""
@@ -143,26 +145,26 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
                 except Exception:
                     pass
             user_data.pop(chat_id, None)
-            bot.send_message(chat_id, tr('cancelled', lang), reply_markup=get_main_keyboard(lang, is_admin))
+            safe_send_message(bot, chat_id, tr('cancelled', lang), reply_markup=get_main_keyboard(lang, is_admin))
             return
 
         if not info or 'session' not in info or 'random_hash' not in info or 'phone' not in info:
-            bot.send_message(chat_id, tr('session_expired', lang), reply_markup=get_main_keyboard(lang, is_admin))
+            safe_send_message(bot, chat_id, tr('session_expired', lang), reply_markup=get_main_keyboard(lang, is_admin))
             user_data.pop(chat_id, None)
             return
 
         code = extract_login_code(raw_text)
 
-        # Validate code structure
+        # Validate code structure (letters, digits, underscores, hyphens, 4 to 25 chars)
         if not re.match(r'^[a-zA-Z0-9_\-]{4,25}$', code):
-            bot.send_message(chat_id, tr('code_invalid_format', lang), reply_markup=get_cancel_keyboard(lang))
+            safe_send_message(bot, chat_id, tr('code_invalid_format', lang), reply_markup=get_cancel_keyboard(lang))
             return
 
         session = info['session']
         phone_number = info['phone']
         random_hash = info['random_hash']
 
-        bot.send_message(chat_id, tr('logging_in', lang))
+        safe_send_message(bot, chat_id, tr('logging_in', lang))
 
         try:
             success, creds, err_code = login_and_get_credentials(session, phone_number, random_hash, code)
@@ -175,12 +177,7 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
                     resp += tr('prod_config_text', lang, pc=creds['prod_config'])
                 resp += tr('credentials_footer', lang)
 
-                bot.send_message(
-                    chat_id,
-                    resp,
-                    parse_mode='Markdown',
-                    reply_markup=get_main_keyboard(lang, is_admin)
-                )
+                safe_send_message(bot, chat_id, resp, reply_markup=get_main_keyboard(lang, is_admin), parse_mode='HTML')
             else:
                 # Handle error categories
                 if err_code == 'session_expired':
@@ -198,11 +195,11 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
                 else:
                     error_msg = tr('login_failed', lang, error=err_code)
 
-                bot.send_message(
-                    chat_id,
-                    error_msg,
-                    reply_markup=get_main_keyboard(lang, is_admin)
-                )
+                safe_send_message(bot, chat_id, error_msg, reply_markup=get_main_keyboard(lang, is_admin))
+
+        except Exception as e:
+            logger.error(f"Unexpected error in handle_login_code: {e}", exc_info=True)
+            safe_send_message(bot, chat_id, tr('login_failed', lang, error=str(e)), reply_markup=get_main_keyboard(lang, is_admin))
         finally:
             try:
                 session.close()

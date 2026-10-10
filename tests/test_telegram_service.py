@@ -34,18 +34,26 @@ def test_extract_login_code():
     # Direct code
     assert extract_login_code("ABC123xyz") == "ABC123xyz"
     assert extract_login_code("  code456  ") == "code456"
+    assert extract_login_code("QBg-V-T9a7c") == "QBg-V-T9a7c"
+
+    # Forwarded English telegram message with hyphens and newlines
+    msg_en_hyphens = """Web login code. Dear User, we received a request from your account to log in on my.telegram.org. This is your login code:
+QBg-V-T9a7c
+
+Do not give this code to anyone, even if they say they're from Telegram!"""
+    assert extract_login_code(msg_en_hyphens) == "QBg-V-T9a7c"
 
     # Forwarded English telegram message
     msg_en = "Web login code.\nThis is your login code: aBcDeF12\nDo not give this code to anyone."
     assert extract_login_code(msg_en) == "aBcDeF12"
 
     # Forwarded Persian telegram message
-    msg_fa = "کد ورود شما: fA123bC\nاین کد را در اختیار دیگران نگذارید."
-    assert extract_login_code(msg_fa) == "fA123bC"
+    msg_fa = "کد ورود شما:\nfA-123-bC\nاین کد را در اختیار دیگران نگذارید."
+    assert extract_login_code(msg_fa) == "fA-123-bC"
 
     # Forwarded Russian telegram message
-    msg_ru = "Ваш код для входа: RuCode99\nНикому не сообщайте этот код."
-    assert extract_login_code(msg_ru) == "RuCode99"
+    msg_ru = "Ваш код для входа:\nRu-Code_99\nНикому не сообщайте этот код."
+    assert extract_login_code(msg_ru) == "Ru-Code_99"
 
 
 def test_extract_credentials_standard_markup():

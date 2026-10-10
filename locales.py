@@ -10,11 +10,11 @@ TEXTS = {
         'lang_name': "🇮🇷 فارسی",
         
         'welcome': (
-            "👋 سلام *{name}* عزیز! به ربات دریافت API تلگرام خوش آمدید!\n\n"
-            "این ربات به شما کمک می‌کند تا **API ID** و **API Hash** حساب تلگرام خود را به صورت خودکار و امن دریافت کنید.\n\n"
-            "⚠️ **نکته امنیتی:**\n"
-            "ارتباط مستقیماً با سرور رسمی تلگرام (`my.telegram.org`) انجام می‌شود و هیچ اطلاعاتی در سرور ذخیره نمی‌شود.\n\n"
-            "📱 برای شروع، شماره موبایل خود را به همراه کد کشور ارسال کنید (مثال: `+989123456789`) یا از دکمه زیر برای اشتراک‌گذاری استفاده نمایید:"
+            "👋 سلام <b>{name}</b> عزیز! به ربات دریافت API تلگرام خوش آمدید!\n\n"
+            "این ربات به شما کمک می‌کند تا <b>API ID</b> و <b>API Hash</b> حساب تلگرام خود را به صورت خودکار و امن دریافت کنید.\n\n"
+            "⚠️ <b>نکته امنیتی:</b>\n"
+            "ارتباط مستقیماً با سرور رسمی تلگرام (<code>my.telegram.org</code>) انجام می‌شود و هیچ اطلاعاتی در سرور ذخیره نمی‌شود.\n\n"
+            "📱 برای شروع، شماره موبایل خود را به همراه کد کشور ارسال کنید (مثال: <code>+989123456789</code>) یا از دکمه زیر برای اشتراک‌گذاری استفاده نمایید:"
         ),
         
         'btn_share_phone': "اشتراک گذاری شماره موبایل 📱",
@@ -23,8 +23,8 @@ TEXTS = {
         'btn_broadcast': "پیام همگانی 📢",
         
         'cancelled': "❌ عملیات لغو شد. برای شروع مجدد /start را ارسال کنید.",
-        'invalid_phone': "❌ فرمت شماره موبایل نامعتبر است.\nلطفاً شماره را به همراه کد کشور وارد کنید (مثال: `+989123456789`).",
-        'phone_received': "📱 شماره `{phone}` ثبت شد.\n⏳ در حال درخواست کد تأیید از تلگرام...",
+        'invalid_phone': "❌ فرمت شماره موبایل نامعتبر است.\nلطفاً شماره را به همراه کد کشور وارد کنید (مثال: <code>+989123456789</code>).",
+        'phone_received': "📱 شماره <code>{phone}</code> ثبت شد.\n⏳ در حال درخواست کد تأیید از تلگرام...",
         
         'telegram_rate_limited': "🚫 حساب شما به دلیل تلاش‌های مکرر موقتاً توسط تلگرام محدود شده است!\nلطفاً ۸ الی ۲۴ ساعت دیگر دوباره امتحان کنید.",
         'enter_code': "✉️ کد ورود ارسال شده توسط تلگرام را وارد کنید:\n(می‌توانید پیام حاوی کد تلگرام را مستقیماً فوروارد کنید)",
@@ -40,12 +40,12 @@ TEXTS = {
             "💡 ممکن است اکانت شما به تازگی ساخته شده باشد یا آی‌پی محدود باشد. لطفاً یک بار وارد سایت https://my.telegram.org در مرورگر خود شوید و برنامه را بسازید، سپس دوباره تست کنید."
         ),
         'credentials_success': (
-            "🎉 **اطلاعات API تلگرام شما با موفقیت دریافت شد!**\n\n"
-            "🔑 **API ID:** `{api_id}`\n"
-            "🔒 **API HASH:** `{api_hash}`\n"
+            "🎉 <b>اطلاعات API تلگرام شما با موفقیت دریافت شد!</b>\n\n"
+            "🔑 <b>API ID:</b> <code>{api_id}</code>\n"
+            "🔒 <b>API HASH:</b> <code>{api_hash}</code>\n"
         ),
-        'public_key_text': "🧩 **Public Key:**\n`{key}`\n",
-        'prod_config_text': "⚙️ **Production Config:** `{pc}`\n",
+        'public_key_text': "🧩 <b>Public Key:</b>\n<pre>{key}</pre>\n",
+        'prod_config_text': "⚙️ <b>Production Config:</b> <code>{pc}</code>\n",
         'credentials_footer': "\n💡 از این اطلاعات می‌توانید در پروژه‌های تله‌تون (Telethon)، پایروگرام (Pyrogram) و کلاینت‌های اختصاصی تلگرام استفاده کنید.",
         'credentials_not_found': "❌ اطلاعات API در صفحه یافت نشد. ممکن است حساب دارای محدودیت باشد یا قالب صفحه تغییر کرده باشد.",
         
@@ -54,8 +54,8 @@ TEXTS = {
         
         'alive': "🤖 ربات فعال و آماده به کار است!",
         'help': (
-            "ℹ️ **راهنمای ربات دریافت API تلگرام:**\n\n"
-            "1️⃣ شماره موبایل خود را به همراه کد کشور ارسال کنید (مثال: `+989123456789`).\n"
+            "ℹ️ <b>راهنمای ربات دریافت API تلگرام:</b>\n\n"
+            "1️⃣ شماره موبایل خود را به همراه کد کشور ارسال کنید (مثال: <code>+989123456789</code>).\n"
             "2️⃣ تلگرام یک کد تأیید برای حساب شما ارسال می‌کند.\n"
             "3️⃣ کد را وارد کرده یا پیام تلگرام را فوروارد نمایید.\n"
             "4️⃣ ربات به صورت خودکار اطلاعات API شما را دریافت و نمایش می‌دهد.\n\n"
@@ -80,11 +80,11 @@ TEXTS = {
         'lang_name': "🇬🇧 English",
         
         'welcome': (
-            "👋 Hello *{name}*! Welcome to the Telegram API ID & Hash Bot!\n\n"
-            "This bot helps you easily and automatically retrieve the **API ID** and **API Hash** for your Telegram account.\n\n"
-            "⚠️ **Security Notice:**\n"
-            "Requests are made directly to the official Telegram site (`my.telegram.org`). Your phone number and credentials are never stored.\n\n"
-            "📱 To start, please send your phone number with country code (e.g. `+1234567890`) or use the button below to share it:"
+            "👋 Hello <b>{name}</b>! Welcome to the Telegram API ID & Hash Bot!\n\n"
+            "This bot helps you easily and automatically retrieve the <b>API ID</b> and <b>API Hash</b> for your Telegram account.\n\n"
+            "⚠️ <b>Security Notice:</b>\n"
+            "Requests are made directly to the official Telegram site (<code>my.telegram.org</code>). Your phone number and credentials are never stored.\n\n"
+            "📱 To start, please send your phone number with country code (e.g. <code>+1234567890</code>) or use the button below to share it:"
         ),
         
         'btn_share_phone': "Share Phone Number 📱",
@@ -93,8 +93,8 @@ TEXTS = {
         'btn_broadcast': "Broadcast Message 📢",
         
         'cancelled': "❌ Operation cancelled. Send /start to begin again.",
-        'invalid_phone': "❌ Invalid phone number format.\nPlease enter your phone number with country code (e.g. `+1234567890`).",
-        'phone_received': "📱 Phone `{phone}` received.\n⏳ Requesting confirmation code from Telegram...",
+        'invalid_phone': "❌ Invalid phone number format.\nPlease enter your phone number with country code (e.g. <code>+1234567890</code>).",
+        'phone_received': "📱 Phone <code>{phone}</code> received.\n⏳ Requesting confirmation code from Telegram...",
         
         'telegram_rate_limited': "🚫 Your account is temporarily rate-limited by Telegram due to multiple attempts!\nPlease wait 8 to 24 hours before trying again.",
         'enter_code': "✉️ Please enter the confirmation code sent to your Telegram account:\n(You can also directly forward the official Telegram message)",
@@ -110,12 +110,12 @@ TEXTS = {
             "💡 Brand-new accounts or certain IP addresses may be restricted. Please visit https://my.telegram.org manually in your browser to create the app once, then try again."
         ),
         'credentials_success': (
-            "🎉 **Telegram API credentials retrieved successfully!**\n\n"
-            "🔑 **API ID:** `{api_id}`\n"
-            "🔒 **API HASH:** `{api_hash}`\n"
+            "🎉 <b>Telegram API credentials retrieved successfully!</b>\n\n"
+            "🔑 <b>API ID:</b> <code>{api_id}</code>\n"
+            "🔒 <b>API HASH:</b> <code>{api_hash}</code>\n"
         ),
-        'public_key_text': "🧩 **Public Key:**\n`{key}`\n",
-        'prod_config_text': "⚙️ **Production Config:** `{pc}`\n",
+        'public_key_text': "🧩 <b>Public Key:</b>\n<pre>{key}</pre>\n",
+        'prod_config_text': "⚙️ <b>Production Config:</b> <code>{pc}</code>\n",
         'credentials_footer': "\n💡 You can now use these credentials in Telethon, Pyrogram, and custom Telegram MTProto applications.",
         'credentials_not_found': "❌ Could not parse API credentials from Telegram. Your account may have restrictions or the layout changed.",
         
@@ -124,8 +124,8 @@ TEXTS = {
         
         'alive': "🤖 Bot is alive and running!",
         'help': (
-            "ℹ️ **Telegram API Bot Guide:**\n\n"
-            "1️⃣ Send your phone number with country code (e.g. `+1234567890`).\n"
+            "ℹ️ <b>Telegram API Bot Guide:</b>\n\n"
+            "1️⃣ Send your phone number with country code (e.g. <code>+1234567890</code>).\n"
             "2️⃣ Telegram will send an official login code to your account.\n"
             "3️⃣ Enter the code or forward the Telegram message.\n"
             "4️⃣ The bot will automatically retrieve and display your API credentials.\n\n"
@@ -150,11 +150,11 @@ TEXTS = {
         'lang_name': "🇷🇺 Русский",
         
         'welcome': (
-            "👋 Здравствуйте, *{name}*! Добро пожаловать в бот для получения Telegram API ID и Hash!\n\n"
-            "Этот бот поможет вам быстро и безопасно получить **API ID** и **API Hash** для вашей учетной записи Telegram.\n\n"
-            "⚠️ **Примечание о безопасности:**\n"
-            "Запросы отправляются напрямую на официальный сайт Telegram (`my.telegram.org`). Номер и коды нигде не сохраняются.\n\n"
-            "📱 Для начала отправьте свой номер телефона с кодом страны (например, `+79123456789`) или воспользуйтесь кнопкой ниже:"
+            "👋 Здравствуйте, <b>{name}</b>! Добро пожаловать в бот для получения Telegram API ID и Hash!\n\n"
+            "Этот бот поможет вам быстро и безопасно получить <b>API ID</b> и <b>API Hash</b> для вашей учетной записи Telegram.\n\n"
+            "⚠️ <b>Примечание о безопасности:</b>\n"
+            "Запросы отправляются напрямую на официальный сайт Telegram (<code>my.telegram.org</code>). Номер и коды нигде не сохраняются.\n\n"
+            "📱 Для начала отправьте свой номер телефона с кодом страны (например, <code>+79123456789</code>) или воспользуйтесь кнопкой ниже:"
         ),
         
         'btn_share_phone': "Поделиться номером 📱",
@@ -163,10 +163,10 @@ TEXTS = {
         'btn_broadcast': "Массовая рассылка 📢",
         
         'cancelled': "❌ Операция отменена. Отправьте /start, чтобы начать заново.",
-        'invalid_phone': "❌ Неверный формат номера телефона.\nПожалуйста, введите номер с кодом страны (например: `+79123456789`).",
-        'phone_received': "📱 Номер `{phone}` получен.\n⏳ Запрос кода подтверждения у Telegram...",
+        'invalid_phone': "❌ Неверный формат номера телефона.\nПожалуйста, введите номер с кодом страны (например: <code>+79123456789</code>).",
+        'phone_received': "📱 Номер <code>{phone}</code> получен.\n⏳ Запрос кода подтверждения у Telegram...",
         
-        'telegram_rate_limited': "🚫 Ваш аккауنت временно ограничен Telegram из-за частых попыток!\nПожалуйста, повторите попытку через 8–24 часа.",
+        'telegram_rate_limited': "🚫 Ваш аккаунт временно ограничен Telegram из-за частых попыток!\nПожалуйста, повторите попытку через 8–24 часа.",
         'enter_code': "✉️ Пожалуйста, введите код подтверждения от Telegram:\n(Вы также можете просто переслать служебное сообщение из Telegram)",
         
         'code_invalid_format': "⚠️ Неверный формат кода. Пожалуйста, проверьте и отправьте еще раз.",
@@ -180,12 +180,12 @@ TEXTS = {
             "💡 Новые аккаунты или подозрительные IP могут иметь ограничения. Войдите на https://my.telegram.org в браузере вручную и создайте приложение, затем повторите попытку."
         ),
         'credentials_success': (
-            "🎉 **Данные Telegram API успешно получены!**\n\n"
-            "🔑 **API ID:** `{api_id}`\n"
-            "🔒 **API HASH:** `{api_hash}`\n"
+            "🎉 <b>Данные Telegram API успешно получены!</b>\n\n"
+            "🔑 <b>API ID:</b> <code>{api_id}</code>\n"
+            "🔒 <b>API HASH:</b> <code>{api_hash}</code>\n"
         ),
-        'public_key_text': "🧩 **Public Key:**\n`{key}`\n",
-        'prod_config_text': "⚙️ **Production Config:** `{pc}`\n",
+        'public_key_text': "🧩 <b>Public Key:</b>\n<pre>{key}</pre>\n",
+        'prod_config_text': "⚙️ <b>Production Config:</b> <code>{pc}</code>\n",
         'credentials_footer': "\n💡 Вы можете использовать эти данные в проектах на Telethon, Pyrogram и других MTProto клиентах.",
         'credentials_not_found': "❌ Не удалось извлечь данные API. Возможно, на аккаунте есть ограничения или изменилась структура сайта.",
         
@@ -194,8 +194,8 @@ TEXTS = {
         
         'alive': "🤖 Бот активен и работает!",
         'help': (
-            "ℹ️ **Инструкция по использованию бота:**\n\n"
-            "1️⃣ Отправьте номер телефона с кодом страны (например, `+79123456789`).\n"
+            "ℹ️ <b>Инструкция по использованию бота:</b>\n\n"
+            "1️⃣ Отправьте номер телефона с кодом страны (например, <code>+79123456789</code>).\n"
             "2️⃣ Telegram отправит служебное сообщение с кодом подтверждения.\n"
             "3️⃣ Введите полученный код или перешлите сообщение от Telegram.\n"
             "4️⃣ Бот автоматически получит и покажет ваши данные API.\n\n"
@@ -216,6 +216,7 @@ TEXTS = {
 }
 
 SUPPORTED_LANGUAGES = ['fa', 'en', 'ru']
+
 
 def tr(key: str, lang: str = 'fa', **kwargs) -> str:
     """Retrieve translated text by key, falling back to Persian (fa) if not found."""
