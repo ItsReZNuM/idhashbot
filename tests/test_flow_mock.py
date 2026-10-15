@@ -111,3 +111,83 @@ def test_login_success_auto_create_app():
     assert success is True
     assert creds['api_id'] == "11223344"
     assert creds['api_hash'] == "00112233445566778899aabbccddeeff"
+
+
+def test_login_app_creation_rejected_distinguished_from_not_found():
+    session = MagicMock()
+    login_resp = MagicMock()
+    login_resp.status_code = 200
+    login_resp.text = "true"
+
+    create_page_resp = MagicMock()
+    create_page_resp.url = "https://my.telegram.org/apps"
+    create_page_resp.text = '''
+    <form action="/apps/create" method="post">
+      <input type="hidden" name="hash" value="csrf_token_xyz" />
+      <input type="text" name="app_title" />
+      <input type="text" name="app_shortname" />
+    </form>
+    '''
+    session.get.return_value = create_page_resp
+
+    create_resp = MagicMock()
+    create_resp.status_code = 200
+    create_resp.text = "ERROR"
+
+    session.post.side_effect = [login_resp, create_resp]
+
+    success, creds, err = login_and_get_credentials(session, "+989123456789", "hash123", "code")
+    assert success is False
+    assert creds is None
+    # Must NOT be credentials_not_found! Must specifically identify app_creation_rejected
+    assert err == 'app_creation_rejected'
+
+
+def test_login_app_creation_still_on_create_page():
+    session = MagicMock()
+    login_resp = MagicMock()
+    login_resp.status_code = 200
+    login_resp.text = "true"
+
+    create_page_resp = MagicMock()
+    create_page_resp.url = "https://my.telegram.org/apps"
+    create_page_resp.text = '''
+    <form action="/apps/create" method="post">
+      <input type="hidden" name="hash" value="csrf_token_xyz" />
+      <input type="text" name="app_title" />
+    </form>
+    '''
+    # Both initial get and refetched get return the create page
+    session.get.return_value = create_page_resp
+
+    create_resp = MagicMock()
+    create_resp.status_code = 200
+    create_resp.text = "OK"  # Claims OK, but page is still create form
+
+    session.post.side_effect = [login_resp, create_resp]
+
+    success, creds, err = login_and_get_credentials(session, "+989123456789", "hash123", "code")
+    assert success is False
+    assert creds is None
+    assert err == 'app_creation_rejected'
+
+
+def test_login_account_restricted_flow():
+    session = MagicMock()
+    login_resp = MagicMock()
+    login_resp.status_code = 200
+    login_resp.text = "true"
+    session.post.return_value = login_resp
+
+    restricted_page_resp = MagicMock()
+    restricted_page_resp.url = "https://my.telegram.org/apps"
+    restricted_page_resp.text = '''
+    <div class="alert alert-danger">Your account is restricted from creating applications.</div>
+    '''
+    session.get.return_value = restricted_page_resp
+
+    success, creds, err = login_and_get_credentials(session, "+989123456789", "hash123", "code")
+    assert success is False
+    assert creds is None
+    assert err.startswith('account_restricted:')
+

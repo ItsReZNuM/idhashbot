@@ -170,6 +170,39 @@ def extract_credentials(html: str, soup: BeautifulSoup) -> tuple[str | None, str
     return api_id, api_hash, public_key, prod_config
 
 
+def is_app_create_page(soup: BeautifulSoup) -> bool:
+    """Check if the current page is the Telegram app creation form."""
+    if soup.find('input', {'name': 'app_title'}):
+        return True
+    if soup.find('input', {'name': 'app_shortname'}):
+        return True
+    if soup.find('form', action=re.compile(r'create', re.IGNORECASE)):
+        return True
+    return False
+
+
+def is_account_restricted_page(html: str, soup: BeautifulSoup) -> tuple[bool, str]:
+    """Check if the page indicates that the account is restricted by Telegram."""
+    alert = soup.find(['div', 'span', 'p'], class_=re.compile(r'alert-danger|alert-error|error-msg', re.IGNORECASE))
+    if alert:
+        text = alert.get_text(strip=True)
+        if text:
+            return True, text
+
+    restriction_patterns = [
+        r'sorry,?\s*too\s*many\s*tries',
+        r'flood_wait',
+        r'account\s*(?:is\s*)?restricted',
+        r'you\s*can[\'’]?t\s*create\s*(?:an?\s*)?application',
+    ]
+    for pattern in restriction_patterns:
+        m = re.search(pattern, html, re.IGNORECASE)
+        if m:
+            return True, m.group(0)
+
+    return False, ""
+
+
 def create_telegram_app(session: requests.Session, soup: BeautifulSoup) -> tuple[bool, str]:
     """Automatically create a Telegram application if the account has none."""
     hash_input = soup.find('input', {'name': 'hash'})
@@ -177,22 +210,30 @@ def create_telegram_app(session: requests.Session, soup: BeautifulSoup) -> tuple
         return False, "csrf_hash_missing"
 
     csrf_hash = hash_input['value']
-    rand_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
-    app_title = f"MyTelegramApp_{rand_suffix}"
-    app_shortname = f"app{rand_suffix}"
+    rand_chars = ''.join(random.choices(string.ascii_lowercase, k=4))
+    rand_digits = ''.join(random.choices(string.digits, k=4))
+    rand_suffix = f"{rand_chars}{rand_digits}"
+
+    # Telegram strictly forbids the word 'Telegram' and special characters in app names
+    app_title = f"ClientApp {rand_suffix.capitalize()}"
+    app_shortname = f"devapp{rand_suffix}"
 
     payload = {
         'hash': csrf_hash,
         'app_title': app_title,
         'app_shortname': app_shortname,
-        'app_url': 'https://telegram.org',
+        'app_url': '',
         'app_platform': 'desktop',
-        'app_desc': 'Personal Telegram MTProto Developer Client',
+        'app_desc': 'Personal MTProto client for API development',
     }
 
     create_headers = dict(BROWSER_HEADERS)
-    create_headers['Content-Type'] = 'application/x-www-form-urlencoded'
-    create_headers['Referer'] = 'https://my.telegram.org/apps'
+    create_headers.update({
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': 'https://my.telegram.org/apps',
+        'Origin': 'https://my.telegram.org',
+    })
 
     try:
         resp = session.post(
@@ -201,9 +242,14 @@ def create_telegram_app(session: requests.Session, soup: BeautifulSoup) -> tuple
             headers=create_headers,
             timeout=15
         )
+        resp_text = resp.text.strip()
+        logger.info(f"Telegram apps/create response status: {resp.status_code}, content: {resp_text[:120]}")
+
         if resp.status_code == 200:
-            if 'ERROR' in resp.text:
+            if resp_text.upper() == 'ERROR' or 'ERROR' in resp_text:
                 return False, "rejected"
+            if 'FLOOD' in resp_text.upper():
+                return False, "flood_wait"
             return True, "ok"
         else:
             return False, f"HTTP {resp.status_code}"
@@ -292,13 +338,16 @@ def login_and_get_credentials(
 
         soup = BeautifulSoup(apps_page.text, 'html.parser')
 
-        # If application needs to be created first
-        if soup.find('form', action=re.compile(r'/apps/create')):
+        # Check if application needs to be created first
+        if is_app_create_page(soup):
             logger.info("No Telegram application found for account. Creating one automatically...")
             created, reason = create_telegram_app(session, soup)
             if not created:
+                logger.warning(f"Telegram app creation failed: {reason}")
                 if reason == 'rejected':
                     return False, None, 'app_creation_rejected'
+                if reason == 'flood_wait':
+                    return False, None, 'app_creation_flood'
                 return False, None, f"app_creation_failed:{reason}"
 
             # Refetch /apps page after creating application
@@ -312,9 +361,22 @@ def login_and_get_credentials(
             except requests.RequestException as e:
                 return False, None, f"network_error:{e}"
 
+            # If still on the create page, creation did not take effect on the server
+            if is_app_create_page(soup):
+                logger.warning("Still on app create page after creation attempt. Account requires manual app creation.")
+                return False, None, 'app_creation_rejected'
+
+        # Check if account has restrictions or errors on page
+        is_restricted, rest_detail = is_account_restricted_page(apps_page.text, soup)
+        if is_restricted:
+            logger.warning(f"Account restricted on my.telegram.org: {rest_detail}")
+            return False, None, f"account_restricted:{rest_detail}"
+
         api_id, api_hash, key, pc = extract_credentials(apps_page.text, soup)
 
         if not api_id or not api_hash:
+            if is_app_create_page(soup):
+                return False, None, 'app_creation_rejected'
             logger.warning(f"Could not extract API credentials from page. Snippet: {apps_page.text[:300]}")
             return False, None, 'credentials_not_found'
 

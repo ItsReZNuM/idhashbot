@@ -36,9 +36,33 @@ TEXTS = {
         'session_expired': "❌ سشن منقضی شد یا به صفحه ورود هدایت شدید. لطفاً با /start مجدداً تلاش کنید.",
         'creating_app': "⚙️ اپلیکیشنی در حساب شما یافت نشد. در حال ساخت خودکار برنامه در تلگرام...",
         'app_creation_failed': (
-            "❌ تلگرام اجازه ساخت خودکار برنامه را به این حساب نداد.\n\n"
-            "💡 ممکن است اکانت شما به تازگی ساخته شده باشد یا آی‌پی محدود باشد. لطفاً یک بار وارد سایت https://my.telegram.org در مرورگر خود شوید و برنامه را بسازید، سپس دوباره تست کنید."
+            "⚠️ <b>خطا در ساخت خودکار اپلیکیشن در تلگرام</b>\n\n"
+            "🔍 <b>وضعیت حساب کاربری:</b>\n"
+            "حساب شما هنوز هیچ برنامه (API Application) در تلگرام ثبت نکرده است. ربات تلاش کرد تا برنامه را به صورت خودکار برای شما ایجاد کند، اما سرورهای تلگرام درخواست را نپذیرفتند.\n\n"
+            "❓ <b>چرا این اتفاق می‌افتد؟ آیا مشکل از ربات است یا کاربر/تلگرام؟</b>\n"
+            "این موضوع باگ ربات نیست، بلکه به دلیل <b>سیاست‌های امنیتی و ضداسپم تلگرام</b> است:\n"
+            "• تلگرام ساخت برنامه از طریق اسکریپت یا آی‌پی‌های سروری را محدود می‌کند.\n"
+            "• اکانت‌های جدید، کم‌فعالیت یا شماره‌های مجازی محدودیت‌های بیشتری دارند.\n"
+            "• برای امنیت حساب، تلگرام نیازمند یک‌بار ثبت دستی توسط کاربر در مرورگر است.\n\n"
+            "🛠 <b>راه‌حل رفع مشکل (فقط ۱ بار برای همیشه - کمتر از یک دقیقه):</b>\n"
+            "۱. با مرورگر موبایل یا کامپیوتر وارد سایت رسمی <b>https://my.telegram.org</b> شوید.\n"
+            "۲. شماره موبایل و کد دریافتی در تلگرام را وارد کنید.\n"
+            "۳. وارد بخش <b>API development tools</b> شوید.\n"
+            "۴. فیلدهای <code>App title</code> و <code>Short name</code> را با نام‌های ساده انگلیسی (بدون کلمه telegram) پر کنید و دکمه <b>Create application</b> را بزنید.\n"
+            "۵. پس از ساخته شدن برنامه در سایت، به این ربات برگشته و /start را بزنید تا اطلاعات بلافاصله برایتان ارسال شود."
         ),
+        'app_creation_flood': (
+            "⏳ <b>محدودیت موقت تلگرام (Flood Wait)</b>\n\n"
+            "⚠️ سرور تلگرام به دلیل تلاش‌های مکرر، موقتاً ساخت برنامه را برای این حساب مسدود کرده است.\n"
+            "💡 لطفاً چند ساعت دیگر دوباره امتحان کنید یا مستقیماً از طریق مرورگر به https://my.telegram.org مراجعه نمایید."
+        ),
+        'account_restricted': (
+            "🚫 <b>محدودیت حساب در سایت تلگرام</b>\n\n"
+            "⚠️ حساب کاربری شما در سایت my.telegram.org با اخطار یا محدودیت امنیتی از سمت تلگرام مواجه شده است:\n"
+            "<code>{detail}</code>\n\n"
+            "💡 لطفاً با مرورگر خود وارد https://my.telegram.org شده و وضعیت حساب خود را بررسی نمایید."
+        ),
+        'account_restricted_generic': "محدودیت امنیتی تلگرام بر روی حساب کاربری",
         'credentials_success': (
             "🎉 <b>اطلاعات API تلگرام شما با موفقیت دریافت شد!</b>\n\n"
             "🔑 <b>API ID:</b> <code>{api_id}</code>\n"
@@ -47,7 +71,15 @@ TEXTS = {
         'public_key_text': "🧩 <b>Public Key:</b>\n<pre>{key}</pre>\n",
         'prod_config_text': "⚙️ <b>Production Config:</b> <code>{pc}</code>\n",
         'credentials_footer': "\n💡 از این اطلاعات می‌توانید در پروژه‌های تله‌تون (Telethon)، پایروگرام (Pyrogram) و کلاینت‌های اختصاصی تلگرام استفاده کنید.",
-        'credentials_not_found': "❌ اطلاعات API در صفحه یافت نشد. ممکن است حساب دارای محدودیت باشد یا قالب صفحه تغییر کرده باشد.",
+        'credentials_not_found': (
+            "❌ <b>اطلاعات API در صفحه تلگرام یافت نشد</b>\n\n"
+            "🔍 <b>بررسی وضعیت:</b>\n"
+            "ورود به سایت با موفقیت انجام شد، اما اطلاعات API ID و API Hash در صفحه موجود نبود.\n\n"
+            "❓ <b>دلایل احتمالی و راه‌حل:</b>\n"
+            "• <b>اکانت فاقد برنامه است:</b> اگر تا به حال برنامه‌ای نساخته‌اید، لطفاً یک‌بار در مرورگر وارد https://my.telegram.org شده و در بخش API development tools یک اپ بسازید.\n"
+            "• <b>محدودیت یا تغییرات سایت:</b> ممکن است اکانت شما محدودیت توسعه‌دهنده داشته باشد یا قالب صفحه در تلگرام تغییر کرده باشد.\n\n"
+            "💡 پیشنهاد می‌شود با مرورگر وارد https://my.telegram.org شوید و از ایجاد برنامه اطمینان حاصل فرمایید."
+        ),
         
         'network_error': "❌ خطای شبکه در ارتباط با سرورهای تلگرام: {error}\nلطفاً بعداً دوباره امتحان کنید.",
         'spam_warning': "⚠️ ارسال پیام بسیار سریع است! لطفاً {remaining} ثانیه صبر کنید.",
@@ -106,9 +138,33 @@ TEXTS = {
         'session_expired': "❌ Session expired or redirected to login. Please start over with /start.",
         'creating_app': "⚙️ No existing Telegram app found. Automatically creating an application...",
         'app_creation_failed': (
-            "❌ Telegram rejected creating an application automatically for this account.\n\n"
-            "💡 Brand-new accounts or certain IP addresses may be restricted. Please visit https://my.telegram.org manually in your browser to create the app once, then try again."
+            "⚠️ <b>Failed to Automatically Create Telegram Application</b>\n\n"
+            "🔍 <b>Account Status:</b>\n"
+            "Your Telegram account does not have an existing API application yet. The bot attempted to create one automatically, but Telegram servers rejected the automated request.\n\n"
+            "❓ <b>Why does this happen? Is it a bot issue or Telegram/User issue?</b>\n"
+            "This is not a bot bug; it is enforced by <b>Telegram's security and anti-abuse policies</b>:\n"
+            "• Telegram restricts automated app creation from server/datacenter IPs.\n"
+            "• New or low-activity accounts are blocked from generating developer apps via scripts.\n"
+            "• Telegram requires a one-time manual verification in a regular web browser.\n\n"
+            "🛠 <b>Quick Solution (Takes 1 minute, only needed once):</b>\n"
+            "1. Open your browser and go to <b>https://my.telegram.org</b>.\n"
+            "2. Log in with your phone number and confirmation code.\n"
+            "3. Click on <b>API development tools</b>.\n"
+            "4. Fill in <code>App title</code> and <code>Short name</code> (use simple English names without the word 'telegram') and click <b>Create application</b>.\n"
+            "5. Once created, return to this bot and send /start to retrieve your credentials immediately."
         ),
+        'app_creation_flood': (
+            "⏳ <b>Telegram Rate Limit (Flood Wait)</b>\n\n"
+            "⚠️ Telegram has temporarily limited app creation for this account.\n"
+            "💡 Please wait a few hours or visit https://my.telegram.org directly in your browser."
+        ),
+        'account_restricted': (
+            "🚫 <b>Account Restricted on Telegram</b>\n\n"
+            "⚠️ Your account encountered a restriction or warning on my.telegram.org:\n"
+            "<code>{detail}</code>\n\n"
+            "💡 Please visit https://my.telegram.org in your browser to inspect your account status."
+        ),
+        'account_restricted_generic': "Telegram security restriction on account",
         'credentials_success': (
             "🎉 <b>Telegram API credentials retrieved successfully!</b>\n\n"
             "🔑 <b>API ID:</b> <code>{api_id}</code>\n"
@@ -117,7 +173,16 @@ TEXTS = {
         'public_key_text': "🧩 <b>Public Key:</b>\n<pre>{key}</pre>\n",
         'prod_config_text': "⚙️ <b>Production Config:</b> <code>{pc}</code>\n",
         'credentials_footer': "\n💡 You can now use these credentials in Telethon, Pyrogram, and custom Telegram MTProto applications.",
-        'credentials_not_found': "❌ Could not parse API credentials from Telegram. Your account may have restrictions or the layout changed.",
+        'credentials_not_found': (
+            "❌ <b>API Credentials Not Found</b>\n\n"
+            "🔍 <b>Status:</b>\n"
+            "Successfully logged in to my.telegram.org, but API ID and API Hash could not be found on the page.\n\n"
+            "❓ <b>Likely Causes & Fix:</b>\n"
+            "• <b>No App Created:</b> If you have never created an app before, your account has no API credentials registered.\n"
+            "• <b>Restrictions/Layout:</b> Your account might have developer restrictions or Telegram's page structure changed.\n\n"
+            "🛠 <b>Solution:</b>\n"
+            "Log in to https://my.telegram.org in your browser, visit 'API development tools', and verify or create your app manually."
+        ),
         
         'network_error': "❌ Network error communicating with Telegram servers: {error}\nPlease try again later.",
         'spam_warning': "⚠️ You are sending messages too quickly! Please wait {remaining} seconds.",
@@ -176,9 +241,33 @@ TEXTS = {
         'session_expired': "❌ Сессия истекла или произошла переадресация на страницу входа. Начните заново с /start.",
         'creating_app': "⚙️ Приложение не найдено. Автоматическое создание приложения в Telegram...",
         'app_creation_failed': (
-            "❌ Telegram отклонил автоматическое создание приложения для этого аккаунта.\n\n"
-            "💡 Новые аккаунты или подозрительные IP могут иметь ограничения. Войдите на https://my.telegram.org в браузере вручную и создайте приложение, затем повторите попытку."
+            "⚠️ <b>Ошибка автоматического создания приложения Telegram</b>\n\n"
+            "🔍 <b>Статус аккаунта:</b>\n"
+            "На вашем аккаунте еще нет созданного API-приложения. Бот попытался создать его автоматически, но серверы Telegram отклонили запрос.\n\n"
+            "❓ <b>Почему это происходит? Проблема в боте или в Telegram?</b>\n"
+            "Это не ошибка бота, а <b>политика безопасности и антиспама Telegram</b>:\n"
+            "• Telegram блокирует автоматическое создание приложений с IP-адресов серверов.\n"
+            "• Новые аккаунты или аккаунты с низкой активностью ограничены.\n"
+            "• Telegram требует разового ручного подтверждения в браузере.\n\n"
+            "🛠 <b>Решение (занимает 1 минуту, делается один раз):</b>\n"
+            "1. Откройте в браузере <b>https://my.telegram.org</b>.\n"
+            "2. Войдите по номеру телефона и коду подтверждения.\n"
+            "3. Перейдите в раздел <b>API development tools</b>.\n"
+            "4. Заполните <code>App title</code> и <code>Short name</code> (любые английские слова без слова 'telegram') и нажмите <b>Create application</b>.\n"
+            "5. Вернитесь в этот бот и отправьте /start — данные отобразятся мгновенно."
         ),
+        'app_creation_flood': (
+            "⏳ <b>Временное ограничение Telegram (Flood Wait)</b>\n\n"
+            "⚠️ Telegram временно ограничил создание приложений для этого аккаунта.\n"
+            "💡 Пожалуйста, подождите несколько часов или войдите на https://my.telegram.org через браузер."
+        ),
+        'account_restricted': (
+            "🚫 <b>Ограничение аккаунта в Telegram</b>\n\n"
+            "⚠️ На сайте my.telegram.org обнаружено ограничение для вашего аккаунта:\n"
+            "<code>{detail}</code>\n\n"
+            "💡 Войдите на https://my.telegram.org через браузер, чтобы проверить статус аккаунта."
+        ),
+        'account_restricted_generic': "Ограничение безопасности Telegram для аккаунта",
         'credentials_success': (
             "🎉 <b>Данные Telegram API успешно получены!</b>\n\n"
             "🔑 <b>API ID:</b> <code>{api_id}</code>\n"
@@ -187,7 +276,16 @@ TEXTS = {
         'public_key_text': "🧩 <b>Public Key:</b>\n<pre>{key}</pre>\n",
         'prod_config_text': "⚙️ <b>Production Config:</b> <code>{pc}</code>\n",
         'credentials_footer': "\n💡 Вы можете использовать эти данные в проектах на Telethon, Pyrogram и других MTProto клиентах.",
-        'credentials_not_found': "❌ Не удалось извлечь данные API. Возможно, на аккаунте есть ограничения или изменилась структура сайта.",
+        'credentials_not_found': (
+            "❌ <b>Данные API не найдены</b>\n\n"
+            "🔍 <b>Статус:</b>\n"
+            "Вход на сайт Telegram выполнен успешно, но API ID и API Hash не найдены на странице.\n\n"
+            "❓ <b>Причина и решение:</b>\n"
+            "• <b>Приложение не создано:</b> Если вы никогда ранее не создавали приложение, на аккаунте отсутствуют данные API.\n"
+            "• <b>Ограничение или изменение:</b> Возможно, на аккаунته действуют ограничения разработчика или изменилась структура сайта.\n\n"
+            "🛠 <b>Решение:</b>\n"
+            "Войдите на https://my.telegram.org через браузер, откройте раздел 'API development tools' и создайте приложение вручную."
+        ),
         
         'network_error': "❌ Сетевая ошибка при подключении к серверам Telegram: {error}\nПожалуйста, попробуйте позже.",
         'spam_warning': "⚠️ Вы отправляете сообщения слишком часто! Подождите {remaining} сек.",

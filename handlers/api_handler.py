@@ -184,6 +184,13 @@ def register_api_handlers(bot: TeleBot, user_data: dict):
                     error_msg = tr('session_expired', lang)
                 elif err_code in ['app_creation_rejected', 'app_creation_failed']:
                     error_msg = tr('app_creation_failed', lang)
+                elif err_code == 'app_creation_flood':
+                    error_msg = tr('app_creation_flood', lang)
+                elif err_code.startswith('account_restricted'):
+                    detail = err_code.split(':', 1)[1] if ':' in err_code else ""
+                    if not detail:
+                        detail = tr('account_restricted_generic', lang)
+                    error_msg = tr('account_restricted', lang, detail=detail)
                 elif err_code.startswith('login_failed:'):
                     detail = err_code.split(':', 1)[1]
                     error_msg = tr('login_failed', lang, error=detail)

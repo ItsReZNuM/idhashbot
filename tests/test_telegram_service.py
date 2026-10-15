@@ -1,3 +1,4 @@
+import re
 import pytest
 from bs4 import BeautifulSoup
 from telegram_service import (
@@ -118,3 +119,78 @@ def test_browser_headers():
     assert 'User-Agent' in BROWSER_HEADERS
     assert 'Accept' in BROWSER_HEADERS
     assert BROWSER_HEADERS['Origin'] == 'https://my.telegram.org'
+
+
+def test_is_app_create_page():
+    from telegram_service import is_app_create_page
+
+    # Standard form with app_title and app_shortname
+    html1 = '<form action="/apps/create"><input name="app_title" /><input name="app_shortname" /></form>'
+    assert is_app_create_page(BeautifulSoup(html1, 'html.parser')) is True
+
+    # Form with action="create"
+    html2 = '<form action="create"><input name="hash" value="xyz" /></form>'
+    assert is_app_create_page(BeautifulSoup(html2, 'html.parser')) is True
+
+    # Page with only input name="app_title"
+    html3 = '<div><input name="app_title" value="" /></div>'
+    assert is_app_create_page(BeautifulSoup(html3, 'html.parser')) is True
+
+    # Page with credentials only (not create page)
+    html4 = '<div class="form-group"><label>App api_id:</label><span>12345</span></div>'
+    assert is_app_create_page(BeautifulSoup(html4, 'html.parser')) is False
+
+
+def test_is_account_restricted_page():
+    from telegram_service import is_account_restricted_page
+
+    # Alert danger box
+    html1 = '<div class="alert alert-danger">Sorry, you cannot create an application at this time.</div>'
+    restricted, detail = is_account_restricted_page(html1, BeautifulSoup(html1, 'html.parser'))
+    assert restricted is True
+    assert "Sorry" in detail
+
+    # Flood wait text
+    html2 = '<p>FLOOD_WAIT_18000</p>'
+    restricted, detail = is_account_restricted_page(html2, BeautifulSoup(html2, 'html.parser'))
+    assert restricted is True
+
+    # Normal page
+    html3 = '<div><p>Welcome to developer tools</p></div>'
+    restricted, detail = is_account_restricted_page(html3, BeautifulSoup(html3, 'html.parser'))
+    assert restricted is False
+    assert detail == ""
+
+
+def test_create_telegram_app_payload_sanitization():
+    from unittest.mock import MagicMock
+    from telegram_service import create_telegram_app
+
+    session = MagicMock()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.text = "OK"
+    session.post.return_value = mock_resp
+
+    soup = BeautifulSoup('<form action="/apps/create"><input type="hidden" name="hash" value="csrf123" /></form>', 'html.parser')
+    success, reason = create_telegram_app(session, soup)
+
+    assert success is True
+    assert reason == "ok"
+
+    # Verify posted payload
+    call_args = session.post.call_args
+    assert call_args is not None
+    posted_data = call_args[1]['data']
+    posted_headers = call_args[1]['headers']
+
+    # Must NOT contain the word 'telegram' in title or shortname
+    assert 'telegram' not in posted_data['app_title'].lower()
+    assert 'telegram' not in posted_data['app_shortname'].lower()
+
+    # Shortname must be alphanumeric lowercase
+    assert re.match(r'^[a-z0-9]{5,32}$', posted_data['app_shortname'])
+
+    # Must send AJAX header
+    assert posted_headers.get('X-Requested-With') == 'XMLHttpRequest'
+
