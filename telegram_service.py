@@ -283,8 +283,8 @@ def create_telegram_app(session: requests.Session, soup: BeautifulSoup) -> tuple
         'app_title': app_title,
         'app_shortname': app_shortname,
         'app_url': '',
-        'app_platform': 'desktop',
-        'app_desc': 'Personal MTProto client for API development',
+        'app_platform': 'android',
+        'app_desc': '',
     }
 
     create_headers = dict(BROWSER_HEADERS)
