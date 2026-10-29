@@ -77,14 +77,57 @@ def extract_login_code(code_input: str) -> str:
 def extract_credentials(html: str, soup: BeautifulSoup) -> tuple[str | None, str | None, str | None, str | None]:
     """
     Robust multi-layered extraction of api_id, api_hash, public_key, and prod_config.
+    Layer 0: Modern Telegram UI (.creds, .cred with .k/.v and data-value / data-copy).
     Layer 1: Flexible DOM search across label tags and parent containers.
-    Layer 2: Search elements with uneditable/selectable classes or attributes.
+    Layer 2: Search elements with uneditable/selectable classes or data-copy attributes.
     Layer 3: Direct regex fallbacks on the raw HTML.
     """
     api_id = None
     api_hash = None
     public_key = None
     prod_config = None
+
+    # Layer 0: Modern Telegram UI (.creds with .cred items)
+    for cred in soup.find_all(['div', 'section'], class_='cred'):
+        k_el = cred.find(class_='k')
+        if not k_el:
+            continue
+        k_text = k_el.get_text(strip=True).lower()
+        v_el = cred.find(class_='v')
+        candidates = []
+        if v_el:
+            if v_el.get('data-value'):
+                candidates.append(v_el['data-value'].strip())
+            vv = v_el.find(class_='vv')
+            if vv:
+                candidates.append(vv.get_text(strip=True))
+            candidates.append(v_el.get_text(strip=True))
+        for btn in cred.find_all(attrs={'data-copy': True}):
+            candidates.append(btn['data-copy'].strip())
+
+        for val in candidates:
+            if 'api_id' in k_text and not api_id:
+                m = re.search(r'\b\d{5,12}\b', val)
+                if m:
+                    api_id = m.group(0)
+            elif 'api_hash' in k_text and not api_hash:
+                m = re.search(r'\b[0-9a-fA-F]{32}\b', val)
+                if m:
+                    api_hash = m.group(0)
+
+    # Modern Telegram UI: MTProto servers
+    for srv in soup.find_all(class_='server'):
+        if 'production' in srv.get_text().lower():
+            addr_m = re.search(r'Address\s*([0-9.]+:\d+)', srv.get_text())
+            if addr_m:
+                prod_config = addr_m.group(1)
+            else:
+                dd = srv.find('dd')
+                if dd and ':' in dd.get_text():
+                    prod_config = dd.get_text(strip=True)
+            key_pre = srv.find('pre')
+            if key_pre and 'BEGIN RSA PUBLIC KEY' in key_pre.get_text():
+                public_key = key_pre.get_text(strip=True)
 
     # Layer 1: Flexible DOM search across label tags and parent containers
     labels = soup.find_all(['label', 'span', 'strong', 'td', 'th'])
@@ -118,8 +161,21 @@ def extract_credentials(html: str, soup: BeautifulSoup) -> tuple[str | None, str
             if val_el:
                 prod_config = val_el.get_text(strip=True)
 
-    # Layer 2: Elements with uneditable or selectable classes/attributes
+    # Layer 2: Elements with uneditable or selectable classes, data-copy, or data-value
     if not (api_id and api_hash):
+        for el in soup.find_all(attrs={'data-copy': True}):
+            val = el['data-copy'].strip()
+            if not api_id and re.fullmatch(r'\d{5,12}', val):
+                api_id = val
+            elif not api_hash and re.fullmatch(r'[0-9a-fA-F]{32}', val):
+                api_hash = val
+        for el in soup.find_all(attrs={'data-value': True}):
+            val = el['data-value'].strip()
+            if not api_id and re.fullmatch(r'\d{5,12}', val):
+                api_id = val
+            elif not api_hash and re.fullmatch(r'[0-9a-fA-F]{32}', val):
+                api_hash = val
+
         selectable = soup.find_all(lambda tag: (
             tag.name in ['span', 'input'] and (
                 'this.select()' in (tag.get('onclick') or '')
@@ -172,18 +228,22 @@ def extract_credentials(html: str, soup: BeautifulSoup) -> tuple[str | None, str
 
 def is_app_create_page(soup: BeautifulSoup) -> bool:
     """Check if the current page is the Telegram app creation form."""
+    if soup.find('form', id='app_create_form'):
+        return True
+    if soup.find('form', id='app_edit_form') or soup.find(class_='creds'):
+        return False
+    if soup.find('form', action=re.compile(r'create', re.IGNORECASE)):
+        return True
     if soup.find('input', {'name': 'app_title'}):
         return True
     if soup.find('input', {'name': 'app_shortname'}):
-        return True
-    if soup.find('form', action=re.compile(r'create', re.IGNORECASE)):
         return True
     return False
 
 
 def is_account_restricted_page(html: str, soup: BeautifulSoup) -> tuple[bool, str]:
     """Check if the page indicates that the account is restricted by Telegram."""
-    alert = soup.find(['div', 'span', 'p'], class_=re.compile(r'alert-danger|alert-error|error-msg', re.IGNORECASE))
+    alert = soup.find(['div', 'span', 'p'], class_=re.compile(r'alert-danger|alert-error|error-msg|danger', re.IGNORECASE))
     if alert:
         text = alert.get_text(strip=True)
         if text:
@@ -252,7 +312,14 @@ def create_telegram_app(session: requests.Session, soup: BeautifulSoup) -> tuple
                 return False, "flood_wait"
             return True, "ok"
         else:
-            return False, f"HTTP {resp.status_code}"
+            try:
+                err_data = resp.json()
+                err_text = err_data.get('text', '')
+                if 'flood' in err_text.lower():
+                    return False, "flood_wait"
+                return False, err_text or f"HTTP {resp.status_code}"
+            except Exception:
+                return False, f"HTTP {resp.status_code}"
     except Exception as e:
         logger.error(f"Error creating Telegram app: {e}")
         return False, str(e)
@@ -274,18 +341,25 @@ def send_telegram_code(session: requests.Session, phone_number: str) -> tuple[bo
         logger.error(f"Network error in send_password: {e}")
         return False, f"network_error:{e}", None
 
-    if 'Sorry, too many tries. Please try again later.' in send_resp.text:
+    err_text = ""
+    try:
+        data = send_resp.json()
+        if isinstance(data, dict):
+            err_text = data.get('text', '')
+            random_hash = data.get('random_hash')
+            if random_hash:
+                return True, 'ok', random_hash
+    except Exception:
+        err_text = send_resp.text
+
+    check_text = (err_text or send_resp.text).lower()
+    if 'too many tries' in check_text or 'flood' in check_text:
         return False, 'rate_limited', None
 
-    try:
-        send_data = send_resp.json()
-        random_hash = send_data.get('random_hash')
-        if not random_hash:
-            return False, 'parse_error', None
-        return True, 'ok', random_hash
-    except Exception as e:
-        logger.error(f"Error parsing send_password response: {e} | Raw: {send_resp.text[:100]}")
-        return False, 'parse_error', None
+    if err_text:
+        return False, err_text, None
+
+    return False, f"HTTP {send_resp.status_code}" if send_resp.status_code != 200 else 'parse_error', None
 
 
 def login_and_get_credentials(
@@ -319,8 +393,15 @@ def login_and_get_credentials(
         login_text = login_resp.text.strip()
         logger.info(f"Telegram auth/login response status: {login_resp.status_code}, content: {login_text[:100]}")
 
-        if login_resp.status_code != 200 or login_text.lower() != 'true':
-            err_msg = login_text if login_text else f"HTTP {login_resp.status_code}"
+        if login_resp.status_code != 200 or login_text.lower() not in ('true', ''):
+            err_msg = login_text
+            try:
+                err_data = login_resp.json()
+                if isinstance(err_data, dict) and err_data.get('text'):
+                    err_msg = err_data['text']
+            except Exception:
+                pass
+            err_msg = err_msg if err_msg else f"HTTP {login_resp.status_code}"
             return False, None, f"login_failed:{err_msg}"
 
         # Access /apps page
@@ -333,7 +414,7 @@ def login_and_get_credentials(
         except requests.RequestException as e:
             return False, None, f"network_error:{e}"
 
-        if '/auth' in apps_page.url or 'my_login_form' in apps_page.text:
+        if '/auth' in apps_page.url or 'my_login_form' in apps_page.text or 'stage_phone' in apps_page.text:
             return False, None, 'session_expired'
 
         soup = BeautifulSoup(apps_page.text, 'html.parser')

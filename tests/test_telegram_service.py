@@ -194,3 +194,74 @@ def test_create_telegram_app_payload_sanitization():
     # Must send AJAX header
     assert posted_headers.get('X-Requested-With') == 'XMLHttpRequest'
 
+
+def test_extract_credentials_modern_redesign_markup():
+    html = '''
+    <div class="card">
+      <h2>Credentials</h2>
+      <div class="creds">
+        <div class="cred">
+          <div class="k">App api_id</div>
+          <div class="v"><span class="vv">25334752</span>
+            <span class="icon-btns"><button type="button" class="icon-btn" title="Copy" data-copy="25334752"></button></span>
+          </div>
+        </div>
+        <div class="cred">
+          <div class="k">App api_hash <span class="badge grey">secret</span></div>
+          <div class="v masked" id="api_hash_value" data-value="75d041ecb29c77b7c10846ab8f64c7f5"><span class="vv">••••••••••••••••••••••••••••••••</span>
+            <span class="icon-btns">
+              <button type="button" class="icon-btn" title="Show" data-reveal="#api_hash_value"></button>
+              <button type="button" class="icon-btn" title="Copy" data-copy="75d041ecb29c77b7c10846ab8f64c7f5"></button>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="servers">
+        <div class="server">
+          <div class="top">Production configuration</div>
+          <dl><dt>Address</dt><dd>149.154.167.50:443</dd></dl>
+          <details class="key"><summary>Public keys</summary><pre>-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEA6LszBcC1LGzyr992NzE0ieY+BSaOW622Aa9Bd4ZHLl+TuFQ4lo4g
+-----END RSA PUBLIC KEY-----</pre></details>
+        </div>
+      </div>
+    </div>
+    <form class="card" id="app_edit_form">
+      <input id="app_title" name="app_title" value="My App" />
+      <input id="app_shortname" name="app_shortname" value="myapp" />
+    </form>
+    '''
+    soup = BeautifulSoup(html, 'html.parser')
+    api_id, api_hash, key, pc = extract_credentials(html, soup)
+    assert api_id == '25334752'
+    assert api_hash == '75d041ecb29c77b7c10846ab8f64c7f5'
+    assert 'RSA PUBLIC KEY' in key
+    assert pc == '149.154.167.50:443'
+
+
+def test_is_app_create_page_with_new_edit_form():
+    from telegram_service import is_app_create_page
+    html = '''
+    <div class="creds"><div class="cred"><div class="k">App api_id</div></div></div>
+    <form class="card" id="app_edit_form">
+      <input id="app_title" name="app_title" value="My App" />
+      <input id="app_shortname" name="app_shortname" value="myapp" />
+    </form>
+    '''
+    soup = BeautifulSoup(html, 'html.parser')
+    assert is_app_create_page(soup) is False
+
+    create_html = '<form id="app_create_form"><input name="app_title" /></form>'
+    assert is_app_create_page(BeautifulSoup(create_html, 'html.parser')) is True
+
+
+def test_is_account_restricted_callout_danger():
+    from telegram_service import is_account_restricted_page
+    html = '<div class="alert-slot"><div class="callout danger"><div>Your account is restricted</div></div></div>'
+    restricted, detail = is_account_restricted_page(html, BeautifulSoup(html, 'html.parser'))
+    assert restricted is True
+    assert "restricted" in detail.lower()
+
+
