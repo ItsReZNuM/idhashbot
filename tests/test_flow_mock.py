@@ -191,3 +191,79 @@ def test_login_account_restricted_flow():
     assert creds is None
     assert err.startswith('account_restricted:')
 
+
+def test_login_app_creation_modern_redesign_flow():
+    session = MagicMock()
+    login_resp = MagicMock()
+    login_resp.status_code = 200
+    login_resp.text = "true"
+
+    fresh_page = MagicMock()
+    fresh_page.url = "https://my.telegram.org/apps"
+    fresh_page.text = '''
+    <form class="card" id="app_create_form">
+      <input type="hidden" name="hash" value="94a3fc44285fc76910"/>
+      <input id="app_title" name="app_title" type="text">
+      <input id="app_shortname" name="app_shortname" type="text">
+    </form>
+    '''
+
+    creds_page = MagicMock()
+    creds_page.url = "https://my.telegram.org/apps"
+    creds_page.text = '''
+    <div class="card">
+      <div class="creds">
+        <div class="cred">
+          <div class="k">App api_id</div>
+          <div class="v"><span class="vv">33445566</span></div>
+        </div>
+        <div class="cred">
+          <div class="k">App api_hash</div>
+          <div class="v masked" data-value="abcdef0123456789abcdef0123456789"></div>
+        </div>
+      </div>
+    </div>
+    '''
+
+    create_resp = MagicMock()
+    create_resp.status_code = 200
+    create_resp.text = "OK"
+
+    session.post.side_effect = [login_resp, create_resp]
+    session.get.side_effect = [fresh_page, creds_page]
+
+    success, creds, err = login_and_get_credentials(session, "+989123456789", "hash123", "code")
+    assert success is True
+    assert creds['api_id'] == "33445566"
+    assert creds['api_hash'] == "abcdef0123456789abcdef0123456789"
+
+
+def test_login_app_creation_flood_rate_limit():
+    session = MagicMock()
+    login_resp = MagicMock()
+    login_resp.status_code = 200
+    login_resp.text = "true"
+
+    fresh_page = MagicMock()
+    fresh_page.url = "https://my.telegram.org/apps"
+    fresh_page.text = '''
+    <form class="card" id="app_create_form">
+      <input type="hidden" name="hash" value="94a3fc44285fc76910"/>
+      <input id="app_title" name="app_title" type="text">
+      <input id="app_shortname" name="app_shortname" type="text">
+    </form>
+    '''
+
+    create_resp = MagicMock()
+    create_resp.status_code = 400
+    create_resp.json.return_value = {"text": "Too many attempts. Please try again later.", "field": False}
+
+    session.post.side_effect = [login_resp, create_resp]
+    session.get.return_value = fresh_page
+
+    success, creds, err = login_and_get_credentials(session, "+989123456789", "hash123", "code")
+    assert success is False
+    assert creds is None
+    assert err == "app_creation_flood"
+
+

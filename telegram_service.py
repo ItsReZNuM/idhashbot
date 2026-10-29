@@ -315,8 +315,11 @@ def create_telegram_app(session: requests.Session, soup: BeautifulSoup) -> tuple
             try:
                 err_data = resp.json()
                 err_text = err_data.get('text', '')
-                if 'flood' in err_text.lower():
+                err_lower = err_text.lower()
+                if any(k in err_lower for k in ['flood', 'too many', 'try again later', 'limit']):
                     return False, "flood_wait"
+                if any(k in err_lower for k in ['error', 'cannot create', "can't create", 'rejected']):
+                    return False, "rejected"
                 return False, err_text or f"HTTP {resp.status_code}"
             except Exception:
                 return False, f"HTTP {resp.status_code}"
