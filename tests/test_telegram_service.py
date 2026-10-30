@@ -191,8 +191,8 @@ def test_create_telegram_app_payload_sanitization():
     # Shortname must be alphanumeric lowercase
     assert re.match(r'^[a-z0-9]{5,32}$', posted_data['app_shortname'])
 
-    # Must send AJAX header
-    assert posted_headers.get('X-Requested-With') == 'XMLHttpRequest'
+    # Headers must include Content-Type matching native fetch
+    assert posted_headers.get('Content-Type') == 'application/x-www-form-urlencoded'
 
 
 def test_extract_credentials_modern_redesign_markup():

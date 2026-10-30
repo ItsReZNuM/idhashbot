@@ -289,8 +289,7 @@ def create_telegram_app(session: requests.Session, soup: BeautifulSoup) -> tuple
 
     create_headers = dict(BROWSER_HEADERS)
     create_headers.update({
-        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/x-www-form-urlencoded',
         'Referer': 'https://my.telegram.org/apps',
         'Origin': 'https://my.telegram.org',
     })
